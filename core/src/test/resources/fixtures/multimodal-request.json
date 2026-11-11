@@ -1,0 +1,12 @@
+{
+  "model": "original-model",
+  "stream": false,
+  "messages": [{"role": "user", "content": [
+    {"type": "text", "text": "屏幕上有什么？"},
+    {"type": "image_url", "image_url": {"url": "data:image/png;base64,fixture", "detail": "low"}}
+  ]}],
+  "tools": [{"type": "function", "function": {"name": "tap", "description": "Tap a point", "parameters": {"type": "object", "properties": {"x": {"type": "integer"}}, "required": ["x"]}}}],
+  "tool_choice": {"type": "function", "function": {"name": "tap"}},
+  "parallel_tool_calls": false,
+  "temperature": 0.2
+}
