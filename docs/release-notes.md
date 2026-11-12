@@ -1,4 +1,17 @@
-# Aicy OpenAI Bridge 0.1.0
+# Aicy OpenAI Bridge 0.2.0
+
+设置界面改用 Miuix 0.9.4，支持浅色、深色模式，分组显示渠道、连接测试和运行状态。
+
+- 保存成功后展示“我的渠道”；退出重开重新读取已提交的配置。
+- 关闭接管保留 API 地址、模型和加密密钥；启用开关与渠道保存独立。
+- 兼容 v0.1.0 的存储记录。系统暂时无法解密时保留渠道，支持重试读取；编辑时 Key 留空保留原密文。
+- 使用相同发布证书，可直接覆盖安装本仓库 v0.1.0 发布包。不要先卸载或清除应用数据。
+
+安装 `aicy-openai-bridge-v0.2.0-api102.apk`。仍要求现代 libxposed API102，仍适配 Aicy 13.1.1（13001001）。保存或切换接管后请强行停止并重新打开 Aicy。
+
+配置恢复与 Compose 界面使用 Robolectric 做回归验证，包含关闭页面后重新启动 Activity；实际 Flyme、硬件 Keystore 与 LSPosed 仍需设备验证。具体测试及 APK 校验结果见 [VALIDATION.md](../VALIDATION.md)。
+
+## 0.1.0
 
 首个 API102 测试版本，适配 Aicy 13.1.1（13001001）。
 

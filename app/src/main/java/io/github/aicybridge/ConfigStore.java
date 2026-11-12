@@ -2,25 +2,27 @@ package io.github.aicybridge;
 
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.security.keystore.KeyGenParameterSpec;
-import android.security.keystore.KeyProperties;
-import android.util.Base64;
 import java.io.IOException;
+import java.net.URI;
 import java.security.GeneralSecurityException;
-import java.security.KeyStore;
-import javax.crypto.Cipher;
-import javax.crypto.KeyGenerator;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.GCMParameterSpec;
+import java.util.Map;
+import io.github.aicybridge.core.OpenAiClient;
 
-/** Private module settings. The bearer key is encrypted using the module UID's Android Keystore. */
+/** Durable profile data is independent of the enable switch and temporary credential availability. */
 public final class ConfigStore {
     private static final String KEY_ALIAS = "aicybridge.api-key.v1";
+    private static final Object WRITE_LOCK = new Object();
     private final SharedPreferences preferences;
+    private final SecretCodec secrets;
 
     public ConfigStore(Context context) {
-        preferences = context.getApplicationContext()
-                .getSharedPreferences("settings", Context.MODE_PRIVATE);
+        this(context.getApplicationContext().getSharedPreferences("settings", Context.MODE_PRIVATE),
+                new AndroidSecretCodec(KEY_ALIAS));
+    }
+
+    ConfigStore(SharedPreferences preferences, SecretCodec secrets) {
+        this.preferences = preferences;
+        this.secrets = secrets;
     }
 
     public static final class Settings {
@@ -29,101 +31,122 @@ public final class ConfigStore {
         public final String apiKey;
         public final String model;
         public final boolean keyReadable;
+        public final boolean hasSavedConfig;
+        public final boolean hasApiKey;
+        public final boolean savedEnabled;
+        public final long savedAt;
 
-        Settings(boolean enabled, String baseUrl, String apiKey, String model, boolean keyReadable) {
+        Settings(boolean enabled, String baseUrl, String apiKey, String model, boolean readable,
+                 boolean configured, boolean hasKey, boolean savedEnabled, long savedAt) {
             this.enabled = enabled;
             this.baseUrl = baseUrl;
             this.apiKey = apiKey;
             this.model = model;
-            this.keyReadable = keyReadable;
+            this.keyReadable = readable;
+            this.hasSavedConfig = configured;
+            this.hasApiKey = hasKey;
+            this.savedEnabled = savedEnabled;
+            this.savedAt = savedAt;
         }
     }
 
     public Settings read() {
-        // Take one atomic preference snapshot so a concurrent save cannot pair a new key with an old host.
-        java.util.Map<String, ?> snapshot = preferences.getAll();
+        Map<String, ?> snapshot = preferences.getAll();
         String baseUrl = string(snapshot, "base_url", "https://api.openai.com/v1");
         String model = string(snapshot, "model", "");
         String encrypted = string(snapshot, "encrypted_api_key", "");
+        // Legacy profiles predate this marker. Never use enabled or decrypted key presence as existence.
+        boolean configured = Boolean.TRUE.equals(snapshot.get("has_saved_config"))
+                || snapshot.containsKey("base_url") || snapshot.containsKey("model");
+        boolean savedEnabled = Boolean.TRUE.equals(snapshot.get("enabled"));
+        Object timestamp = snapshot.get("config_saved_at");
+        long savedAt = timestamp instanceof Long ? (Long) timestamp : 0L;
         try {
-            return new Settings(Boolean.TRUE.equals(snapshot.get("enabled")), baseUrl,
-                    decrypt(encrypted), model, true);
-        } catch (GeneralSecurityException | IOException | IllegalArgumentException e) {
-            // A restored preference file or unavailable Keystore must never activate stale settings.
-            return new Settings(false, baseUrl, "", model, false);
+            return new Settings(savedEnabled, baseUrl, secrets.decrypt(encrypted), model, true,
+                    configured, !encrypted.isEmpty(), savedEnabled, savedAt);
+        } catch (GeneralSecurityException | IOException | IllegalArgumentException | java.security.ProviderException unavailable) {
+            // Preserve the complete record. A transient Keystore failure must not erase or overwrite it.
+            return new Settings(false, baseUrl, "", model, false, configured,
+                    !encrypted.isEmpty(), savedEnabled, savedAt);
         }
     }
 
-    private static String string(java.util.Map<String, ?> values, String name, String fallback) {
+    /** Explicitly replace the credential, retained for compatibility with the original store API. */
+    public void save(boolean enabled, String baseUrl, String apiKey, String model)
+            throws GeneralSecurityException, IOException {
+        saveProfile(enabled, baseUrl, apiKey, model, false);
+    }
+
+    /** Empty editor text may retain an existing encrypted key without decrypting/re-encrypting it. */
+    public void saveProfile(boolean enabled, String baseUrl, String enteredKey, String model, boolean keepKey)
+            throws GeneralSecurityException, IOException {
+        new OpenAiClient.Config(baseUrl, enteredKey, model);
+        synchronized (WRITE_LOCK) {
+            Map<String, ?> before = preferences.getAll();
+            String existing = string(before, "encrypted_api_key", "");
+            String encrypted;
+            if (keepKey && !existing.isEmpty()) {
+                if (!sameOrigin(string(before, "base_url", ""), baseUrl)) {
+                    throw new IllegalArgumentException("A different API origin requires an explicit credential");
+                }
+                // Enabling requires a usable key; editing a disabled profile can retain unreadable ciphertext.
+                if (enabled) secrets.decrypt(existing);
+                encrypted = existing;
+            } else {
+                encrypted = secrets.encrypt(enteredKey);
+            }
+            if (!preferences.edit().putBoolean("enabled", enabled)
+                    .putBoolean("has_saved_config", true)
+                    .putLong("config_saved_at", System.currentTimeMillis())
+                    .putString("base_url", baseUrl).putString("encrypted_api_key", encrypted)
+                    .putString("model", model).commit()) {
+                throw new IOException("Settings could not be committed");
+            }
+        }
+    }
+
+    public void setEnabled(boolean enabled) throws GeneralSecurityException, IOException {
+        synchronized (WRITE_LOCK) {
+            if (enabled) {
+                Settings saved = read();
+                if (!saved.hasSavedConfig) throw new IllegalStateException("Save a profile first");
+                if (!saved.keyReadable) throw new GeneralSecurityException("Credential temporarily unavailable");
+                new OpenAiClient.Config(saved.baseUrl, saved.apiKey, saved.model);
+            }
+            if (!preferences.edit().putBoolean("enabled", enabled).commit()) {
+                throw new IOException("Enable state could not be committed");
+            }
+        }
+    }
+
+    public boolean disable() {
+        synchronized (WRITE_LOCK) {
+            return preferences.edit().putBoolean("enabled", false).commit();
+        }
+    }
+
+    public String statusCode() { return preferences.getString("hook_status", "waiting"); }
+    public long statusTime() { return preferences.getLong("hook_status_time", 0L); }
+
+    public boolean reportStatus(String code) {
+        if (!StatusText.isKnown(code)) return false;
+        synchronized (WRITE_LOCK) {
+            return preferences.edit().putString("hook_status", code)
+                    .putLong("hook_status_time", System.currentTimeMillis()).commit();
+        }
+    }
+
+    private static String string(Map<String, ?> values, String name, String fallback) {
         Object value = values.get(name);
         return value instanceof String ? (String) value : fallback;
     }
 
-    public synchronized void save(boolean enabled, String baseUrl, String apiKey, String model)
-            throws GeneralSecurityException, IOException {
-        String encrypted = encrypt(apiKey);
-        if (!preferences.edit().putBoolean("enabled", enabled)
-                .putString("base_url", baseUrl).putString("encrypted_api_key", encrypted)
-                .putString("model", model).commit()) {
-            throw new IOException("Settings could not be committed");
-        }
-    }
-
-    /** A disable action remains possible even if the user has incomplete or damaged credentials. */
-    public synchronized boolean disable() {
-        return preferences.edit().putBoolean("enabled", false).commit();
-    }
-
-    public String statusCode() { return preferences.getString("hook_status", "waiting"); }
-
-    public long statusTime() { return preferences.getLong("hook_status_time", 0L); }
-
-    public synchronized boolean reportStatus(String code) {
-        if (!StatusText.isKnown(code)) return false;
-        return preferences.edit().putString("hook_status", code)
-                .putLong("hook_status_time", System.currentTimeMillis()).commit();
-    }
-
-    private static String encrypt(String value) throws GeneralSecurityException, IOException {
-        if (value.isEmpty()) return "";
-        Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
-        cipher.init(Cipher.ENCRYPT_MODE, key(true));
-        byte[] encrypted = cipher.doFinal(value.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-        return "v1:" + Base64.encodeToString(cipher.getIV(), Base64.NO_WRAP) + ":"
-                + Base64.encodeToString(encrypted, Base64.NO_WRAP);
-    }
-
-    private static String decrypt(String value) throws GeneralSecurityException, IOException {
-        if (value.isEmpty()) return "";
-        String[] fields = value.split(":", -1);
-        if (fields.length != 3 || !"v1".equals(fields[0])) {
-            throw new GeneralSecurityException("Unknown encrypted key format");
-        }
-        byte[] iv = Base64.decode(fields[1], Base64.NO_WRAP);
-        byte[] encrypted = Base64.decode(fields[2], Base64.NO_WRAP);
-        if (iv.length != 12 || encrypted.length < 16) {
-            throw new GeneralSecurityException("Invalid encrypted key");
-        }
-        Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
-        cipher.init(Cipher.DECRYPT_MODE, key(false), new GCMParameterSpec(128, iv));
-        return new String(cipher.doFinal(encrypted), java.nio.charset.StandardCharsets.UTF_8);
-    }
-
-    private static SecretKey key(boolean create) throws GeneralSecurityException, IOException {
-        KeyStore store = KeyStore.getInstance("AndroidKeyStore");
-        store.load(null);
-        if (store.containsAlias(KEY_ALIAS)) {
-            java.security.Key value = store.getKey(KEY_ALIAS, null);
-            if (value instanceof SecretKey) return (SecretKey) value;
-            throw new GeneralSecurityException("Unexpected key type");
-        }
-        if (!create) throw new GeneralSecurityException("Encryption key unavailable");
-        KeyGenerator generator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore");
-        generator.init(new KeyGenParameterSpec.Builder(KEY_ALIAS,
-                KeyProperties.PURPOSE_ENCRYPT | KeyProperties.PURPOSE_DECRYPT)
-                .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
-                .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
-                .setKeySize(256).setRandomizedEncryptionRequired(true).build());
-        return generator.generateKey();
+    private static boolean sameOrigin(String a, String b) {
+        try {
+            URI left = new URI(a), right = new URI(b);
+            return "https".equalsIgnoreCase(left.getScheme()) && "https".equalsIgnoreCase(right.getScheme())
+                    && left.getHost() != null && left.getHost().equalsIgnoreCase(right.getHost())
+                    && (left.getPort() < 0 ? 443 : left.getPort()) == (right.getPort() < 0 ? 443 : right.getPort());
+        } catch (java.net.URISyntaxException invalid) { return false; }
     }
 }

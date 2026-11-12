@@ -7,7 +7,7 @@
 1. 下载并安装 [dist 目录中的签名 APK](dist/README.md)，版本说明同时发布在 Releases。
 2. 在支持 **现代 API 102** 的 LSPosed 或兼容框架中启用模块，作用域选择 **Aicy 助手**（`com.meizu.voiceassistant`）。旧版 API 82 框架不能加载本模块。
 3. 打开桌面的 **Aicy OpenAI Bridge**，填写 HTTPS API 前缀、API Key 和模型 ID。例如 `https://api.openai.com/v1`；也可填写完整的 `/chat/completions` 地址。
-4. 点击“测试连接”检查地址和密钥，然后启用并保存配置。
+4. 可先点“测试连接”检查地址和密钥，然后点击“保存并启用”。已保存的渠道显示在“我的渠道”卡片中；修改时点击“编辑渠道”，密钥留空会保留原密钥。
 5. **强行停止并重新打开 Aicy**，让进程加载新配置；框架首次启用模块时按管理器提示重启。修改或关闭配置后同样需要重启 Aicy。
 
 在模块中刷新 Hook 状态可查看是否成功接管。连接测试只验证一次文字请求，不能据此判断模型是否支持工具调用或图片。Agent 需要模型支持 `tools` / `tool_calls`；读屏等图片任务还需要视觉能力。
@@ -21,6 +21,14 @@
 - 不修改官方账号会员或积分状态。联网搜索、图片生成、远程 MCP、跨设备服务等工具仍取决于各自服务和授权。
 
 API Key 使用模块 UID 下的 Android Keystore 加密存储，禁止备份。配置 Provider 只允许模块自身及包名、UID、签名均匹配的 Aicy 调用。启用后，Aicy 进程会接触 API Key，并把对话及任务所需内容发给你指定的服务商。
+
+## v0.2.0 设置界面与配置恢复
+
+设置界面采用 [Miuix 0.9.4](https://github.com/compose-miuix-ui/miuix/tree/v0.9.4)，支持系统浅色与深色模式。渠道、连接测试和运行状态分组展示。目前保存一个 API 渠道。
+
+保存成功后才显示“已保存”；退出重开会重新读取本机记录。关闭接管只改变开关，保留地址、模型和加密密钥。旧版记录可直接读取，密钥暂时无法解密时也会保留渠道，并允许重试读取。编辑时密钥留空不会覆盖原密钥；更换 API 主机时需明确填写密钥。
+
+从本仓库 v0.1.0 发布包更新时，直接覆盖安装 v0.2.0，保留应用数据。不要先卸载模块或清除其数据。界面预览见 [浅色](docs/screenshots/settings-empty-light.png)、[深色](docs/screenshots/settings-empty-dark.png) 和 [已保存渠道](docs/screenshots/settings-saved-light.png)，截图由 Robolectric 渲染。
 
 ## 版本与验证
 
@@ -37,16 +45,16 @@ API Key 使用模块 UID 下的 Android Keystore 加密存储，禁止备份。�
 
 ## 构建
 
-使用 JDK 17、Gradle Wrapper 8.13、Android SDK `platforms;android-37.0` 和 `build-tools;37.0.0`：
+使用 JDK 21、Gradle Wrapper 9.7.1、AGP 9.5.1、Android SDK `platforms;android-37.0` 和 `build-tools;37.0.0`：
 
 ```sh
 sdkmanager 'platforms;android-37.0' 'build-tools;37.0.0'
-./gradlew :core:test :app:assembleDebug :app:assembleRelease :app:lintDebug
+./gradlew :core:test :app:testDebugUnitTest :app:assembleDebug :app:assembleRelease :app:lintDebug
 ```
 
-Windows 使用 `gradlew.bat`。官方 `io.github.libxposed:api:102.0.0` AAR 要求 compile SDK 37；项目原样使用该依赖，没有打包框架 API 或厂商实现。AGP 8.13.2 会提示其最高测试 SDK 为 36.1，实际 SDK 37.0 的资源、依赖元数据、Java、DEX 和打包检查已通过。
+Windows 使用 `gradlew.bat`。官方 `io.github.libxposed:api:102.0.0` AAR 要求 compile SDK 37；项目原样使用该依赖，没有打包框架 API 或厂商实现。Kotlin 与 Compose 编译插件固定为 2.4.21；Android Compose UI 测试使用 Java 21，应用源码目标为 JVM 17。
 
-`assembleDebug` 输出带调试签名的开发 APK；`assembleRelease` 输出未签名包，需使用自己的长期签名密钥签名后分发。GitHub Actions 自动执行测试、调试构建和 lint 并保存构建产物；CI 调试签名不作为长期更新签名。发布签名密钥不存入源码仓库。
+`assembleDebug` 输出带调试签名的开发 APK；`assembleRelease` 输出未签名包，需使用自己的长期签名密钥签名后分发。GitHub Actions 配置为执行测试、调试构建和 lint 并保存构建产物；远端启动情况见验证记录。CI 调试签名不作为长期更新签名。发布签名密钥不存入源码仓库。
 
 保留原 APK 的电脑可以额外运行静态 ABI 核对（Python 3.11+）：
 

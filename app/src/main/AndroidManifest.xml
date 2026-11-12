@@ -11,7 +11,7 @@
         android:icon="@drawable/ic_bridge"
         android:label="Aicy OpenAI Bridge"
         android:supportsRtl="true"
-        android:theme="@android:style/Theme.Material.Light.NoActionBar"
+        android:theme="@style/Theme.AicyBridge"
         android:usesCleartextTraffic="false">
         <activity
             android:name=".SettingsActivity"

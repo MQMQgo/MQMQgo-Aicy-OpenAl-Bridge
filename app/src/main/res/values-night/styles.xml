@@ -1,0 +1,9 @@
+<resources>
+    <style name="Theme.AicyBridge" parent="android:style/Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/app_background</item>
+        <item name="android:colorAccent">#277AF7</item>
+        <item name="android:fontFamily">sans</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+    <color name="app_background">#000000</color>
+</resources>
