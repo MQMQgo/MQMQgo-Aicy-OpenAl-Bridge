@@ -1,9 +1,9 @@
 {
-  "apk": "aicy-openai-bridge-v0.3.1-api102.apk",
-  "version_name": "0.3.1",
-  "version_code": 5,
-  "bytes": 7485175,
-  "sha256": "d46363169af83a81d411c66e24c4926b9eb594eff8662449e90fe7a3ca4a62d8",
+  "apk": "aicy-openai-bridge-v0.3.2-api102.apk",
+  "version_name": "0.3.2",
+  "version_code": 6,
+  "bytes": 7501559,
+  "sha256": "dc4f7cf62900f7bd1b9e912400402e7a7c2c5cc39e71beb4d3d5dc5d50a9afd0",
   "signing_certificate_sha256": "85e5d46dea60f76910f4b62c94333355f4aaccf84904d7659bf67a62284dc7cf",
   "libxposed_min_api": 102,
   "libxposed_target_api": 102,
@@ -42,7 +42,7 @@
       "skipped": 0
     },
     "io.github.aicybridge.SettingsScreenTest": {
-      "tests": 4,
+      "tests": 5,
       "failures": 0,
       "errors": 0,
       "skipped": 0
@@ -84,5 +84,11 @@
   "embedded_bridge_classes": 1,
   "device_tests_run": false,
   "hardware_keystore_verified": false,
-  "main_dex_classes": 14693
+  "main_dex_classes": 14704,
+  "glass_effect_min_api": 33,
+  "backdrop_blur_min_api": 31,
+  "settings_ui_test_sdks": [
+    29,
+    35
+  ]
 }

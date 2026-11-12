@@ -35,6 +35,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModelProvider
@@ -49,6 +50,7 @@ class SettingsActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        if (android.os.Build.VERSION.SDK_INT >= 29) window.isNavigationBarContrastEnforced = false
         window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
         model = ViewModelProvider(this, ViewModelProvider.AndroidViewModelFactory(application))[SettingsViewModel::class.java]
         val logs = ViewModelProvider(this, ViewModelProvider.AndroidViewModelFactory(application))[CallLogsViewModel::class.java]
@@ -73,7 +75,7 @@ class SettingsActivity : ComponentActivity() {
 }
 
 @Composable
-internal fun BridgeHomeScreen(viewModel: SettingsViewModel, onOpenAicy: () -> Unit) {
+internal fun BridgeHomeScreen(viewModel: SettingsViewModel, onOpenAicy: () -> Unit, bottomPadding: Dp = 30.dp) {
     val state = viewModel.state
     val colors = MiuixTheme.colorScheme
     val savedColor = if (isSystemInDarkTheme()) Color(0xFF76D9B4) else Color(0xFF258260)
@@ -81,7 +83,7 @@ internal fun BridgeHomeScreen(viewModel: SettingsViewModel, onOpenAicy: () -> Un
     Column(
         Modifier.fillMaxSize().semantics { testTagsAsResourceId = true }
             .verticalScroll(rememberScrollState())
-            .widthIn(max = 640.dp).padding(horizontal = 20.dp).padding(top = 22.dp, bottom = 30.dp),
+            .widthIn(max = 640.dp).padding(horizontal = 20.dp).padding(top = 22.dp, bottom = bottomPadding),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {

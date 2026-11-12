@@ -14,6 +14,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.*
@@ -63,7 +64,7 @@ class CallLogsViewModel(application: Application) : AndroidViewModel(application
 }
 
 @Composable
-internal fun CallLogsScreen(model: CallLogsViewModel, onCopy: (List<CallLogStore.Entry>) -> Unit) {
+internal fun CallLogsScreen(model: CallLogsViewModel, onCopy: (List<CallLogStore.Entry>) -> Unit, bottomPadding: Dp = 22.dp) {
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     LaunchedEffect(lifecycle, model) {
         lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -76,7 +77,7 @@ internal fun CallLogsScreen(model: CallLogsViewModel, onCopy: (List<CallLogStore
     var confirmClear by remember { mutableStateOf(false) }
     val visible = if (failuresOnly) state.entries.filter { it.isFailure } else state.entries
     LazyColumn(Modifier.fillMaxSize().testTag("call_logs_list").semantics { testTagsAsResourceId = true },
-        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 22.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        contentPadding = PaddingValues(start = 20.dp, top = 22.dp, end = 20.dp, bottom = bottomPadding), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {

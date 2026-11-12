@@ -88,6 +88,20 @@ class SettingsScreenTest {
     }
 
     @Test
+    @Config(sdk = [29], qualifiers = "w393dp-h852dp-440dpi")
+    fun olderAndroidCanNavigateAndReturnWithoutLoadingNewGraphicsApis() {
+        compose.waitUntil(20_000) { compose.onAllNodesWithTag("api_url").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithTag("nav_logs").performClick()
+        compose.onNodeWithTag("nav_logs").assertIsSelected()
+        compose.onNodeWithTag("call_logs_list").assertExists()
+        scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
+        compose.onNodeWithTag("nav_home").assertIsSelected()
+        compose.onNodeWithTag("api_url").assertExists()
+        compose.onNodeWithTag("call_logs_list").assertDoesNotExist()
+        capture("settings-fallback-api29.png")
+    }
+
+    @Test
     @Config(sdk = [35], qualifiers = "w393dp-h852dp-night-440dpi")
     fun darkModeKeepsTheEditorAndSaveActionUsable() {
         compose.waitUntil(20_000) { compose.onAllNodesWithTag("api_url").fetchSemanticsNodes().isNotEmpty() }

@@ -1,6 +1,6 @@
 # Android 设置应用与配置桥
 
-模块应用 ID 为 `io.github.aicybridge`，设置界面为 Kotlin/Compose `SettingsActivity`，使用 Miuix 0.9.4，跟随系统浅色与深色模式。`BridgeApp` 使用 `FloatingNavigationBar` 在主页和日志页间切换，两页保留独立滚动状态；API 草稿由现有 ViewModel 保留，密钥不写入保存状态。
+模块应用 ID 为 `io.github.aicybridge`，设置界面为 Kotlin/Compose `SettingsActivity`，使用 Miuix 0.9.4，跟随系统浅色与深色模式。`BridgeApp` 使用参考 Miuix 玻璃示例的 `GlassCapsuleNavigation` 在主页和日志页间切换，两页保留独立滚动状态；API 草稿由现有 ViewModel 保留，密钥不写入保存状态。底栏叠放在页面上方，滚动容器末尾预留空间，移除整块底栏占位区域。材质和平台回退见 [玻璃底栏](../docs/glass-navigation.md)。
 
 ## 使用
 

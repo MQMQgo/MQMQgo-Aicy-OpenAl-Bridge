@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
@@ -15,15 +16,9 @@ import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.role
-import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.unit.dp
-import top.yukonga.miuix.kmp.basic.FloatingNavigationBar
-import top.yukonga.miuix.kmp.basic.FloatingNavigationBarItem
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -40,29 +35,34 @@ internal fun BridgeApp(settings: SettingsViewModel, logs: CallLogsViewModel,
         keyboard?.hide()
         page = destination
     }
+    val backdrop = rememberGlassBackdrop()
+    val safeInsets = WindowInsets.safeDrawing
+    val barHeight = maxOf(48.dp, (35f + 12f * LocalDensity.current.fontScale).dp)
+    val contentBottomPadding = if (keyboardVisible) 22.dp
+        else safeInsets.asPaddingValues().calculateBottomPadding() + barHeight + 32.dp
     BackHandler(enabled = page == 1) { select(0) }
     Scaffold(
         modifier = Modifier.fillMaxSize().semantics { testTagsAsResourceId = true },
         containerColor = MiuixTheme.colorScheme.surface,
-        bottomBar = {
-            if (!keyboardVisible) Box(Modifier.fillMaxWidth().padding(top = 8.dp)) {
-                FloatingNavigationBar(
-                    modifier = Modifier.testTag("capsule_navigation"),
-                    shadowElevation = 10.dp, showDivider = false,
-                ) {
-                    FloatingNavigationBarItem(selected = page == 0, onClick = { select(0) }, icon = HomeIcon, label = "主页",
-                        modifier = Modifier.width(104.dp).testTag("nav_home").semantics { selected = page == 0; role = Role.Tab })
-                    FloatingNavigationBarItem(selected = page == 1, onClick = { select(1) }, icon = LogsIcon, label = "日志",
-                        modifier = Modifier.width(104.dp).testTag("nav_logs").semantics { selected = page == 1; role = Role.Tab })
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+    ) {
+        Box(Modifier.fillMaxSize()) {
+            // Capture only the page. The glass must never sample itself.
+            Box(Modifier.fillMaxSize().captureGlassBackdrop(backdrop).imePadding()) {
+                Box(Modifier.fillMaxSize().windowInsetsPadding(safeInsets.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal))) {
+                    pages.SaveableStateProvider(page) {
+                        if (page == 0) BridgeHomeScreen(settings, onOpenAicy, contentBottomPadding)
+                        else CallLogsScreen(logs, onCopyLogs, contentBottomPadding)
+                    }
                 }
             }
-        },
-    ) { insets ->
-        Box(Modifier.fillMaxSize().padding(insets).consumeWindowInsets(insets).imePadding()) {
-            pages.SaveableStateProvider(page) {
-                if (page == 0) BridgeHomeScreen(settings, onOpenAicy)
-                else CallLogsScreen(logs, onCopyLogs)
-            }
+            if (!keyboardVisible) GlassCapsuleNavigation(
+                backdrop = backdrop, selectedPage = page, onSelect = select,
+                homeIcon = HomeIcon, logsIcon = LogsIcon, height = barHeight,
+                modifier = Modifier.align(Alignment.BottomCenter)
+                    .windowInsetsPadding(safeInsets.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal))
+                    .padding(bottom = 12.dp),
+            )
         }
     }
 }
