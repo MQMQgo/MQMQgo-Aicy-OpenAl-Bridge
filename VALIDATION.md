@@ -58,3 +58,11 @@ lint：0 个 Error/Fatal，11 个 Warning。警告包括非公开 `Application.a
 ## 尚未验证
 
 执行 `adb devices -l` 时没有连接设备；没有真实 Flyme 手机、API102 框架或用户第三方模型的端到端运行结果。因此不能把编译、签名和静态 ABI 检查等同于聊天、读屏、工具执行或框架加载已在真机通过。安装后的设备验证仍需进行。
+
+## GitHub 发布（2026-11-12）
+
+源码和 `v0.1.0` 标签已上传到用户指定的私有仓库 `MQMQgo/MQMQgo-Aicy-OpenAl-Bridge`。Release 附件上传接口返回 HTTP 401，因此签名 APK 发布在仓库 `dist/` 中，Release 页面提供该文件的下载入口。没有上传签名私钥。
+
+通过 GitHub Contents API 读回远端 APK，确认 45,980 字节、SHA-256 与上述本地签名包一致。
+
+GitHub Actions 的两次 push 运行在任务启动前返回 `startup_failure`，任务列表为空；没有执行远端构建。工作流文件通过官方 actionlint 1.7.7 的语法检查，当前连接读取 Actions 管理设置返回 403，尚未确定 GitHub 端启动失败的原因。上述构建与测试通过记录均来自本地执行环境，不代表 GitHub Actions 运行通过。
