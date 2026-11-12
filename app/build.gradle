@@ -15,8 +15,8 @@ android {
         applicationId 'io.github.aicybridge'
         minSdk 26
         targetSdk 35
-        versionCode 3
-        versionName '0.2.1'
+        versionCode 4
+        versionName '0.3.0'
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
         buildConfigField 'String', 'TARGET_PACKAGE', '"com.meizu.voiceassistant"'
         buildConfigField 'String', 'TARGET_CERT_SHA256', '"94153299d67ab1b37a39ed5fe17e893df87084fb129077be51863bcbd9132336"'

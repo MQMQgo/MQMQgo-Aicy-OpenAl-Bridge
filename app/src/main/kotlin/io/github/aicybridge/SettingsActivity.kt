@@ -56,7 +56,7 @@ class SettingsActivity : ComponentActivity() {
                     val launch = packageManager.getLaunchIntentForPackage("com.meizu.voiceassistant")
                     if (launch == null) model.showMessage("此设备尚未安装 Aicy 助手。")
                     else startActivity(launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-                })
+                }, onOpenLogs = { startActivity(Intent(this, CallLogsActivity::class.java)) })
             }
         }
     }
@@ -64,7 +64,7 @@ class SettingsActivity : ComponentActivity() {
 }
 
 @Composable
-private fun BridgeScreen(viewModel: SettingsViewModel, onOpenAicy: () -> Unit) {
+private fun BridgeScreen(viewModel: SettingsViewModel, onOpenAicy: () -> Unit, onOpenLogs: () -> Unit) {
     val state = viewModel.state
     val colors = MiuixTheme.colorScheme
     val savedColor = if (isSystemInDarkTheme()) Color(0xFF76D9B4) else Color(0xFF258260)
@@ -187,6 +187,14 @@ private fun BridgeScreen(viewModel: SettingsViewModel, onOpenAicy: () -> Unit) {
                         Spacer(Modifier.height(12.dp))
                         Text(state.testResult, fontSize = 13.sp, color = if (state.testError) colors.error else savedColor)
                     }
+                }
+                SectionHeading("调用日志", "最近 200 条")
+                Card(insideMargin = PaddingValues(20.dp), modifier = Modifier.fillMaxWidth()) {
+                    Text("查看请求状态与错误", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                    Spacer(Modifier.height(6.dp))
+                    Text("记录 Aicy 调用和连接测试的时间、模型、HTTP 状态与耗时。", fontSize = 12.sp, color = colors.onSurfaceVariantSummary)
+                    Spacer(Modifier.height(12.dp))
+                    TextButton("查看调用日志", onClick = onOpenLogs, modifier = Modifier.fillMaxWidth().testTag("open_call_logs"))
                 }
                 SectionHeading("运行状态", "Aicy 13.1.1")
                 Card(insideMargin = PaddingValues(20.dp), modifier = Modifier.fillMaxWidth()) {

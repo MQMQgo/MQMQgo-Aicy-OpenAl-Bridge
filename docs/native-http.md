@@ -34,4 +34,6 @@ The ordinary OpenAI client does not own its supplied HTTP client. The module mus
 
 ## Evidence and verification limits
 
+v0.3.0 optionally installs a metadata-only application interceptor in this isolated client's OkHttp builder. It observes native response codes and timing through headers, while returning the original request/response and rethrowing the original network exception. It does not consume bodies, headers or streams. A module-owned concrete bridge avoids Java Proxy's checked-exception wrapping for the target interface; its generator and bytecode verification are included in tools/. If logging is unavailable the original transport continues. See [call logs](call-logs.md).
+
 The symbols and behavior were inspected from `classes3.dex` and `classes6.dex` using targeted JADX decompilation and DEX disassembly. Vendor source code is not included in this repository. These checks establish the static mapping; actual target-device loading and network behavior still require device validation.

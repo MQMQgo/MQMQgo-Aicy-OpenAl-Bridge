@@ -125,6 +125,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         state = state.copy(testing = true, testResult = "", message = "")
         viewModelScope.launch {
             val result = withContext(Dispatchers.IO) {
+                var trace: CallLogReporter.Trace? = null
                 try {
                     val saved = store.read()
                     val url = if (draft.editing) draft.url.trim() else draft.savedUrl
@@ -137,14 +138,21 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                             || (if (a.port < 0) 443 else a.port) != (if (b.port < 0) 443 else b.port)) throw IllegalArgumentException()
                     }
                     val key = entered.ifEmpty { saved.apiKey }
-                    val call = OpenAiClient(OpenAiClient.Config(url, key, model, 15000, 45000)).newCall(
+                    val config = OpenAiClient.Config(url, key, model, 15000, 45000)
+                    trace = runCatching { CallLogReporter(getApplication<Application>(), url, model, key).begin("test", "test") }.getOrNull()
+                    val call = OpenAiClient(config).newCall(
                         JSONObject().put("messages", JSONArray().put(JSONObject().put("role", "user").put("content", "请只回复 OK。"))))
                     activeCall = call
                     val choices = call.execute().optJSONArray("choices")
-                    if (choices?.optJSONObject(0)?.optJSONObject("message") != null)
+                    if (choices?.optJSONObject(0)?.optJSONObject("message") != null) {
+                        trace?.success()
                         "连接成功，模型已返回消息。" to false
-                    else "接口已连接，但没有返回有效的对话消息。" to true
+                    } else {
+                        trace?.failure(ProtocolException("Missing completion message"), false)
+                        "接口已连接，但没有返回有效的对话消息。" to true
+                    }
                 } catch (error: Exception) {
+                    trace?.failure(error, activeCall?.isCancelled == true)
                     when (error) {
                         is GeneralSecurityException -> "密钥暂时不可读取，请重试或填写新的密钥。"
                         is IllegalArgumentException -> "更换服务商时请填写新的 API Key。"

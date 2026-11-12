@@ -13,6 +13,8 @@
 
 ## 私有存储
 
+调用日志入口在设置页的“查看调用日志”，使用未导出的 CallLogsActivity 和独立私有 SQLite 数据库。记录范围、HTTP 阶段定义、开关、保留上限与导出隐私见 [调用日志](../docs/call-logs.md)。
+
 `ConfigStore` 使用模块私有 SharedPreferences，保留 v0.1.0 的 `settings` 文件、`aicybridge.api-key.v1` Keystore 别名与密文格式。API Key 以 Android Keystore 中 AES-256/GCM 密钥加密，随机 IV 与密文保存于私有偏好，密钥不导出。备份和设备迁移规则均排除应用数据。
 
 保存使用同步 `commit()` 并确认返回值，跨实例写入共用锁；保存标记与开关状态独立。旧版没有保存标记时，根据原地址、模型字段恢复。退出重开会读取已提交记录；停用只写开关，不清空渠道。解密失败时接管保持关闭，但界面仍显示地址、模型和密钥保存状态，允许重试；读取异常不回写空记录。留空保留密钥时沿用原密文，避免临时读取异常覆盖凭据。ViewModel 保留旋转时的编辑内容，密钥不写入 Activity Bundle。

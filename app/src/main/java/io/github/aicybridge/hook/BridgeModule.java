@@ -69,6 +69,8 @@ public final class BridgeModule extends XposedModule {
             AicyHooks.install(this, context, loader);
         } catch (Throwable error) {
             reportStatus(context, "hook_error");
+            try { new io.github.aicybridge.CallLogReporter(context, "", "", "").diagnostic("module", "hook_init", error); }
+            catch (Throwable ignored) { }
             log(Log.ERROR, TAG, "Adapter installation failed: " + error.getClass().getSimpleName());
         }
     }

@@ -15,6 +15,7 @@ import java.util.WeakHashMap;
 import org.json.JSONObject;
 import io.github.aicybridge.core.ChatRequestSanitizer;
 import io.github.aicybridge.core.OpenAiClient;
+import io.github.aicybridge.CallLogReporter;
 import io.github.libxposed.api.XposedInterface.ExceptionMode;
 
 /** Exact descriptors verified against the supplied 13.1.1 APK; no vendor code is bundled. */
@@ -45,12 +46,14 @@ public final class AicyHooks {
         final String key;
         final String model;
         final DelegateScope delegateScope = new DelegateScope();
+        final CallLogReporter callLogs;
         final Map<Object, Object> ownedStreaming = Collections.synchronizedMap(new WeakHashMap<>());
         volatile boolean active;
 
         Adapter(BridgeModule module, Context context, ClassLoader loader, String endpoint, String key, String model) {
             this.module = module; this.context = context; this.loader = loader;
             this.endpoint = endpoint; this.key = key; this.model = model;
+            this.callLogs = new CallLogReporter(context, endpoint, model, key);
         }
 
         void install() throws Throwable {
@@ -111,10 +114,11 @@ public final class AicyHooks {
                 Object old = chain.getArg(0);
                 Object oldStream = chain.getArg(2);
                 if (oldStream == null) throw new IllegalStateException("Aicy OpenAI streaming factory is unavailable");
-                Object ownConfig = configCtor.newInstance(key, model, endpoint, get(old, "d"), "openai-compatible",
-                        get(old, "g"), get(old, "h"));
-                Object pureClient = NativeHttpClients.create(loader);
+                Object pureClient = null;
                 try {
+                    Object ownConfig = configCtor.newInstance(key, model, endpoint, get(old, "d"), "openai-compatible",
+                            get(old, "g"), get(old, "h"));
+                    pureClient = NativeHttpClients.create(loader, callLogs);
                     Object ownStream = streamCtor.newInstance(get(old, "g"), streamFactory.get(oldStream));
                     Object result = chain.proceed(new Object[]{ownConfig, pureClient, ownStream, null, chain.getArg(4)});
                     Object receiver = chain.getThisObject();
@@ -126,6 +130,7 @@ public final class AicyHooks {
                     return result;
                 } catch (Throwable error) {
                     NativeHttpClients.close(pureClient);
+                    callLogs.diagnostic("aicy", "client_init", error);
                     BridgeModule.reportStatus(context, "request_failed");
                     throw error;
                 }
@@ -158,6 +163,7 @@ public final class AicyHooks {
                     BridgeModule.reportStatus(context, "bridge_enabled");
                     return result;
                 } catch (Throwable error) {
+                    callLogs.diagnostic("aicy", "request_body", error);
                     BridgeModule.reportStatus(context, "request_failed");
                     throw error;
                 }

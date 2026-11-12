@@ -19,15 +19,22 @@ public final class SettingsProvider extends ContentProvider {
     public static final String AUTHORITY = "io.github.aicybridge.settings";
     public static final Uri URI = Uri.parse("content://" + AUTHORITY);
     private ConfigStore store;
+    private CallLogStore callLogs;
 
     @Override public boolean onCreate() {
         if (getContext() == null) return false;
         store = new ConfigStore(getContext());
+        callLogs = new CallLogStore(getContext());
         return true;
     }
 
     @Override public Bundle call(String method, String arg, Bundle extras) {
         enforceCaller();
+        if ("call_log_start".equals(method) || "call_log_finish".equals(method)) {
+            Bundle result = new Bundle();
+            result.putBoolean("ok", "call_log_start".equals(method) ? callLogs.start(extras) : callLogs.finish(extras));
+            return result;
+        }
         if ("get_config".equals(method)) {
             ConfigStore.Settings settings = store.read();
             Bundle result = new Bundle();
@@ -45,6 +52,11 @@ public final class SettingsProvider extends ContentProvider {
             return result;
         }
         throw new IllegalArgumentException("Unknown settings operation");
+    }
+
+    @Override public void shutdown() {
+        if (callLogs != null) callLogs.close();
+        super.shutdown();
     }
 
     private void enforceCaller() {
