@@ -1,0 +1,8 @@
+{
+  "apk": "aicy-openai-bridge-v0.1.0-api102.apk",
+  "bytes": 45980,
+  "sha256": "8f4ae8fa5efca37d01323e588ef730ef49909c44cbad9615640c4edf856977fe",
+  "signing_certificate_sha256": "85e5d46dea60f76910f4b62c94333355f4aaccf84904d7659bf67a62284dc7cf",
+  "lint_errors": 0,
+  "lint_warnings": 11
+}

@@ -4,7 +4,7 @@
 
 ## 安装与配置
 
-1. 安装 Releases 中的签名 APK。
+1. 下载并安装 [dist 目录中的签名 APK](dist/README.md)，版本说明同时发布在 Releases。
 2. 在支持 **现代 API 102** 的 LSPosed 或兼容框架中启用模块，作用域选择 **Aicy 助手**（`com.meizu.voiceassistant`）。旧版 API 82 框架不能加载本模块。
 3. 打开桌面的 **Aicy OpenAI Bridge**，填写 HTTPS API 前缀、API Key 和模型 ID。例如 `https://api.openai.com/v1`；也可填写完整的 `/chat/completions` 地址。
 4. 点击“测试连接”检查地址和密钥，然后启用并保存配置。

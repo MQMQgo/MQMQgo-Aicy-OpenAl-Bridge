@@ -13,3 +13,5 @@ secrets.properties
 __pycache__/
 *.pyc
 *.zip
+# Small signed releases are deliberately published in this directory.
+!dist/aicy-openai-bridge-*-api102.apk
