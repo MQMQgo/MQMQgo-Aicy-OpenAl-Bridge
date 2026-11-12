@@ -28,6 +28,8 @@ METHODS = {
     "LD9/c;": {("Q", "(Ljava/io/OutputStream;LY6/i;Z)V")},
     "Lcom/flyme/agentos/llm/impl/routing/o;": {
         ("c", "(Lcom/flyme/agentos/core/ModelFunction;Ljava/lang/String;)LW6/f;")},
+    "Lcom/flyme/agentos/llm/impl/routing/LlmBindings$LlmClientBinding$delegateSlot$2;": {
+        ("invoke", "()Lcom/flyme/agentos/llm/impl/openai/g;"), ("invoke", "()Ljava/lang/Object;")},
     "Lio/ktor/client/f;": {("a", "(Lio/ktor/client/engine/okhttp/a;" + FUNCTION + ")Lio/ktor/client/b;")},
     "Lio/ktor/client/b;": {("close", "()V")},
     AGENT + "domain/tool/recall/y;": {("<init>", "(ZZZZZZZLjava/lang/String;IIIFIIFIFIIILjava/lang/String;FI"

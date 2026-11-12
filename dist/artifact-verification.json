@@ -1,9 +1,9 @@
 {
-  "apk": "aicy-openai-bridge-v0.2.0-api102.apk",
-  "version_name": "0.2.0",
-  "version_code": 2,
+  "apk": "aicy-openai-bridge-v0.2.1-api102.apk",
+  "version_name": "0.2.1",
+  "version_code": 3,
   "bytes": 7452407,
-  "sha256": "7f5e8cbaacf9101664dcaf9aab2a350f01d86fd40e485a4cfe3756f7f53f0c71",
+  "sha256": "4ec8a14c8ff1d69f6a606ca64c2a5e784dd763da9ace777ea6ea48a5c2b19add",
   "signing_certificate_sha256": "85e5d46dea60f76910f4b62c94333355f4aaccf84904d7659bf67a62284dc7cf",
   "libxposed_min_api": 102,
   "libxposed_target_api": 102,
@@ -29,8 +29,8 @@
       "errors": 0,
       "skipped": 0
     },
-    "io.github.aicybridge.ConfigStoreTest": {
-      "tests": 8,
+    "io.github.aicybridge.hook.DelegateScopeTest": {
+      "tests": 5,
       "failures": 0,
       "errors": 0,
       "skipped": 0
@@ -40,8 +40,15 @@
       "failures": 0,
       "errors": 0,
       "skipped": 0
+    },
+    "io.github.aicybridge.ConfigStoreTest": {
+      "tests": 8,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
     }
   },
+  "target_abi_classes_verified": 21,
   "device_tests_run": false,
   "hardware_keystore_verified": false
 }

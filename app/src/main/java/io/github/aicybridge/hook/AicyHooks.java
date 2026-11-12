@@ -44,6 +44,7 @@ public final class AicyHooks {
         final String endpoint;
         final String key;
         final String model;
+        final DelegateScope delegateScope = new DelegateScope();
         final Map<Object, Object> ownedStreaming = Collections.synchronizedMap(new WeakHashMap<>());
         volatile boolean active;
 
@@ -67,6 +68,7 @@ public final class AicyHooks {
             Class<?> codec = type("D9.c");
             Class<?> request = type("Y6.i");
             Class<?> support = type(OPENAI + "n");
+            Class<?> delegateFactory = type("com.flyme.agentos.llm.impl.routing.LlmBindings$LlmClientBinding$delegateSlot$2");
             Constructor<?> profileCtor = constructor(profile, String.class, kind, String.class, String.class,
                     String.class, String.class, Integer.class, Set.class, Map.class);
             Constructor<?> validationCtor = constructor(validation, boolean.class, String.class, Set.class, String.class);
@@ -77,6 +79,8 @@ public final class AicyHooks {
             Constructor<?> clientCtor = constructor(client, config, type("io.ktor.client.b"), stream,
                     type("com.flyme.agentos.agent.core.telemetry.b"), type("Z6.a"));
             Method bindingSnapshot = method(router, "c", function, String.class);
+            Method createDelegate = methodReturning(delegateFactory, "invoke", type(OPENAI + "g"));
+            Method createDelegateBridge = methodReturning(delegateFactory, "invoke", Object.class);
             Method writeRequest = method(codec, "Q", OutputStream.class, request, boolean.class);
             Method headers = method(support, "a", type("Qg.c"), Map.class);
             Method close = method(client, "close");
@@ -103,7 +107,7 @@ public final class AicyHooks {
                 return chain.proceed();
             });
             module.hook(clientCtor).setExceptionMode(ExceptionMode.PASSTHROUGH).setId("aicybridge.native.client").intercept(chain -> {
-                if (!active) return chain.proceed();
+                if (!active || !delegateScope.isActive()) return chain.proceed();
                 Object old = chain.getArg(0);
                 Object oldStream = chain.getArg(2);
                 if (oldStream == null) throw new IllegalStateException("Aicy OpenAI streaming factory is unavailable");
@@ -158,16 +162,30 @@ public final class AicyHooks {
                     throw error;
                 }
             });
+            // Hook both Kotlin entry points, including the Function0 bridge used by the lazy slot.
+            // Nested entry is intentional; the scope restores its previous state in finally.
+            for (Method entry : new Method[]{createDelegate, createDelegateBridge}) {
+                String id = entry == createDelegate ? "aicybridge.llm.delegate-scope.typed" : "aicybridge.llm.delegate-scope.bridge";
+                module.hook(entry).setExceptionMode(ExceptionMode.PASSTHROUGH).setId(id).intercept(chain -> {
+                    if (!active) return chain.proceed();
+                    return delegateScope.during(chain::proceed);
+                });
+            }
             module.hook(bindingSnapshot).setExceptionMode(ExceptionMode.PASSTHROUGH).setId("aicybridge.llm.profile").intercept(chain -> {
                 Object result = chain.proceed();
                 if (!active || !"com.flyme.agentos.llm.impl.routing.m".equals(chain.getThisObject().getClass().getName())) {
                     return result;
                 }
-                Object original = get(result, "a");
-                Object ownProfile = profileCtor.newInstance(get(original, "a"), get(original, "b"), "openai-compatible",
-                        endpoint, model, key, get(original, "g"), get(original, "h"), get(original, "i"));
-                Object valid = validationCtor.newInstance(true, get(original, "a"), Collections.emptySet(), null);
-                return snapshotCtor.newInstance(ownProfile, get(result, "b"), get(result, "c"), get(result, "d"), valid, get(result, "f"));
+                // Startup media tools index their limits by the native profile's model name.
+                // Return that exact snapshot for metadata readers; replace it only inside the
+                // synchronous delegate factory that turns a profile into an actual LLM client.
+                return delegateScope.profile(result, () -> {
+                    Object original = get(result, "a");
+                    Object ownProfile = profileCtor.newInstance(get(original, "a"), get(original, "b"), "openai-compatible",
+                            endpoint, model, key, get(original, "g"), get(original, "h"), get(original, "i"));
+                    Object valid = validationCtor.newInstance(true, get(original, "a"), Collections.emptySet(), null);
+                    return snapshotCtor.newInstance(ownProfile, get(result, "b"), get(result, "c"), get(result, "d"), valid, get(result, "f"));
+                });
             });
             LocalToolSearch.install(module, loader);
             active = true;
@@ -187,6 +205,15 @@ public final class AicyHooks {
     }
     private static Method method(Class<?> owner, String name, Class<?>... arguments) throws NoSuchMethodException {
         Method result = owner.getDeclaredMethod(name, arguments); result.setAccessible(true); return result;
+    }
+    private static Method methodReturning(Class<?> owner, String name, Class<?> returnType) throws NoSuchMethodException {
+        for (Method result : owner.getDeclaredMethods()) {
+            if (name.equals(result.getName()) && result.getParameterTypes().length == 0 && result.getReturnType() == returnType) {
+                result.setAccessible(true);
+                return result;
+            }
+        }
+        throw new NoSuchMethodException("Verified native delegate factory is unavailable");
     }
     private static Field field(Class<?> owner, String name) throws NoSuchFieldException {
         Field result = owner.getDeclaredField(name); result.setAccessible(true); return result;
