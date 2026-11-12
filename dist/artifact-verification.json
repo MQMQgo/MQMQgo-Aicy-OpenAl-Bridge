@@ -1,9 +1,9 @@
 {
-  "apk": "aicy-openai-bridge-v0.3.0-api102.apk",
-  "version_name": "0.3.0",
-  "version_code": 4,
+  "apk": "aicy-openai-bridge-v0.3.1-api102.apk",
+  "version_name": "0.3.1",
+  "version_code": 5,
   "bytes": 7485175,
-  "sha256": "19bbbb69dbfb8ddceb8a8caac89ff00ce045a9a34f768a0ab61d9a2e51959238",
+  "sha256": "d46363169af83a81d411c66e24c4926b9eb594eff8662449e90fe7a3ca4a62d8",
   "signing_certificate_sha256": "85e5d46dea60f76910f4b62c94333355f4aaccf84904d7659bf67a62284dc7cf",
   "libxposed_min_api": 102,
   "libxposed_target_api": 102,
@@ -11,6 +11,54 @@
   "lint_errors": 0,
   "lint_warnings": 6,
   "local_tests": {
+    "io.github.aicybridge.CallLogPrivacyTest": {
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "io.github.aicybridge.CallLogProviderTest": {
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "io.github.aicybridge.CallLogStoreTest": {
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "io.github.aicybridge.CallLogsScreenTest": {
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "io.github.aicybridge.ConfigStoreTest": {
+      "tests": 8,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "io.github.aicybridge.SettingsScreenTest": {
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "io.github.aicybridge.hook.DelegateScopeTest": {
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "io.github.aicybridge.hook.NativeCallLoggingTest": {
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
     "io.github.aicybridge.core.ChatRequestSanitizerTest": {
       "tests": 2,
       "failures": 0,
@@ -28,54 +76,6 @@
       "failures": 0,
       "errors": 0,
       "skipped": 0
-    },
-    "io.github.aicybridge.hook.DelegateScopeTest": {
-      "tests": 5,
-      "failures": 0,
-      "errors": 0,
-      "skipped": 0
-    },
-    "io.github.aicybridge.SettingsScreenTest": {
-      "tests": 3,
-      "failures": 0,
-      "errors": 0,
-      "skipped": 0
-    },
-    "io.github.aicybridge.CallLogProviderTest": {
-      "tests": 2,
-      "failures": 0,
-      "errors": 0,
-      "skipped": 0
-    },
-    "io.github.aicybridge.CallLogStoreTest": {
-      "tests": 6,
-      "failures": 0,
-      "errors": 0,
-      "skipped": 0
-    },
-    "io.github.aicybridge.CallLogPrivacyTest": {
-      "tests": 4,
-      "failures": 0,
-      "errors": 0,
-      "skipped": 0
-    },
-    "io.github.aicybridge.hook.NativeCallLoggingTest": {
-      "tests": 4,
-      "failures": 0,
-      "errors": 0,
-      "skipped": 0
-    },
-    "io.github.aicybridge.ConfigStoreTest": {
-      "tests": 8,
-      "failures": 0,
-      "errors": 0,
-      "skipped": 0
-    },
-    "io.github.aicybridge.CallLogsScreenTest": {
-      "tests": 2,
-      "failures": 0,
-      "errors": 0,
-      "skipped": 0
     }
   },
   "generated_bridge_jvm_tests": 1,
@@ -83,5 +83,6 @@
   "target_abi_classes_verified": 25,
   "embedded_bridge_classes": 1,
   "device_tests_run": false,
-  "hardware_keystore_verified": false
+  "hardware_keystore_verified": false,
+  "main_dex_classes": 14693
 }

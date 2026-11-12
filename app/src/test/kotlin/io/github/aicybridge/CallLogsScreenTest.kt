@@ -20,11 +20,12 @@ import java.io.File
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class CallLogsScreenTest {
     @get:Rule val compose = createEmptyComposeRule()
-    private lateinit var scenario: ActivityScenario<CallLogsActivity>
+    private lateinit var scenario: ActivityScenario<SettingsActivity>
     private val app get() = RuntimeEnvironment.getApplication()
     private lateinit var failedId: String
     @Before fun seedHistory() {
         app.deleteDatabase("call-logs.db")
+        app.getSharedPreferences("settings", Context.MODE_PRIVATE).edit().clear().commit()
         app.getSharedPreferences("call_logging", Context.MODE_PRIVATE).edit().clear().commit()
         CallLogStore(app).use { store ->
             val success = CallLogStoreTest.start("safe-model-vision")
@@ -35,7 +36,8 @@ class CallLogsScreenTest {
             failedId = failed.getString("id")!!
             store.start(failed); store.finish(CallLogStoreTest.end(failed, "response", 401, "http"))
         }
-        scenario = ActivityScenario.launch(CallLogsActivity::class.java)
+        scenario = ActivityScenario.launch(SettingsActivity::class.java)
+        compose.onNodeWithTag("nav_logs").performClick()
     }
     @After fun close() { scenario.close() }
 
@@ -67,7 +69,8 @@ class CallLogsScreenTest {
         compose.waitUntil(20_000) { compose.onAllNodesWithText("最近 2 条 · 最多保留 200 条").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithTag("call_logging_enabled").assertIsOn().performClick()
         compose.waitUntil(10_000) { CallLogStore(app).use { !it.isEnabled } }
-        scenario.close(); scenario = ActivityScenario.launch(CallLogsActivity::class.java)
+        scenario.close(); scenario = ActivityScenario.launch(SettingsActivity::class.java)
+        compose.onNodeWithTag("nav_logs").performClick()
         compose.waitUntil(20_000) { compose.onAllNodesWithText("最近 2 条 · 最多保留 200 条").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithTag("call_logging_enabled").assertIsOff()
         capture("call-logs-dark.png")

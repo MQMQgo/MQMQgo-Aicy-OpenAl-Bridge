@@ -21,7 +21,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".CallLogsActivity" android:exported="false" />
         <provider
             android:name=".SettingsProvider"
             android:authorities="io.github.aicybridge.settings"

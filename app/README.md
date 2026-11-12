@@ -1,6 +1,6 @@
 # Android 设置应用与配置桥
 
-模块应用 ID 为 `io.github.aicybridge`，设置界面为 Kotlin/Compose `SettingsActivity`，使用 Miuix 0.9.4，跟随系统浅色与深色模式。
+模块应用 ID 为 `io.github.aicybridge`，设置界面为 Kotlin/Compose `SettingsActivity`，使用 Miuix 0.9.4，跟随系统浅色与深色模式。`BridgeApp` 使用 `FloatingNavigationBar` 在主页和日志页间切换，两页保留独立滚动状态；API 草稿由现有 ViewModel 保留，密钥不写入保存状态。
 
 ## 使用
 
@@ -13,7 +13,7 @@
 
 ## 私有存储
 
-调用日志入口在设置页的“查看调用日志”，使用未导出的 CallLogsActivity 和独立私有 SQLite 数据库。记录范围、HTTP 阶段定义、开关、保留上限与导出隐私见 [调用日志](../docs/call-logs.md)。
+调用日志从底部胶囊的日志图标进入，在同一 Activity 中显示独立 `CallLogsScreen`，使用独立私有 SQLite 数据库。只有日志页可见且 Activity 在前台时轮询，切回主页或退到后台即停止。记录范围、HTTP 阶段定义、开关、保留上限与导出隐私见 [调用日志](../docs/call-logs.md)。
 
 `ConfigStore` 使用模块私有 SharedPreferences，保留 v0.1.0 的 `settings` 文件、`aicybridge.api-key.v1` Keystore 别名与密文格式。API Key 以 Android Keystore 中 AES-256/GCM 密钥加密，随机 IV 与密文保存于私有偏好，密钥不导出。备份和设备迁移规则均排除应用数据。
 

@@ -62,6 +62,31 @@ class SettingsScreenTest {
         capture("settings-empty-light.png")
     }
 
+    @Test fun capsuleNavigationKeepsUnsavedApiDraftAndSeparatesTheTwoPages() {
+        compose.waitUntil(20_000) { compose.onAllNodesWithTag("api_url").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithTag("nav_home").assertIsSelected()
+        compose.onNodeWithTag("api_url").performScrollTo().performTextClearance()
+        compose.onNodeWithTag("api_url").performTextInput("https://draft.example.test/v1")
+        compose.onNodeWithTag("api_key").performScrollTo().performTextInput("unsaved-test-key")
+        compose.onNodeWithTag("model_id").performScrollTo().performTextInput("unsaved-test-model")
+        compose.onNodeWithTag("model_id").performImeAction()
+        compose.onNodeWithTag("nav_logs").performClick()
+        compose.onNodeWithTag("nav_logs").assertIsSelected()
+        compose.onNodeWithTag("call_logs_list").assertExists()
+        compose.onNodeWithTag("test_connection").assertDoesNotExist()
+        compose.onNodeWithTag("nav_home").performClick()
+        compose.onNodeWithTag("nav_home").assertIsSelected()
+        compose.onNodeWithTag("call_logs_list").assertDoesNotExist()
+        compose.onNodeWithTag("api_url").performScrollTo().assertTextContains("https://draft.example.test/v1")
+        compose.onNodeWithTag("model_id").performScrollTo().assertTextContains("unsaved-test-model")
+        scenario.onActivity {
+            val vm = androidx.lifecycle.ViewModelProvider(it,
+                androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory(it.application))[SettingsViewModel::class.java]
+            org.junit.Assert.assertEquals("unsaved-test-key", vm.state.key)
+        }
+        org.junit.Assert.assertFalse(ConfigStore(RuntimeEnvironment.getApplication()).read().hasSavedConfig)
+    }
+
     @Test
     @Config(sdk = [35], qualifiers = "w393dp-h852dp-night-440dpi")
     fun darkModeKeepsTheEditorAndSaveActionUsable() {

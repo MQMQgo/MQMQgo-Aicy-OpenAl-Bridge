@@ -1,6 +1,8 @@
 package io.github.aicybridge
 
 import android.content.Intent
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
@@ -49,14 +51,21 @@ class SettingsActivity : ComponentActivity() {
         enableEdgeToEdge()
         window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
         model = ViewModelProvider(this, ViewModelProvider.AndroidViewModelFactory(application))[SettingsViewModel::class.java]
+        val logs = ViewModelProvider(this, ViewModelProvider.AndroidViewModelFactory(application))[CallLogsViewModel::class.java]
         setContent {
             val dark = isSystemInDarkTheme()
             MiuixTheme(colors = if (dark) darkColorScheme() else lightColorScheme()) {
-                BridgeScreen(model, onOpenAicy = {
+                BridgeApp(model, logs, onOpenAicy = {
                     val launch = packageManager.getLaunchIntentForPackage("com.meizu.voiceassistant")
                     if (launch == null) model.showMessage("此设备尚未安装 Aicy 助手。")
                     else startActivity(launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-                }, onOpenLogs = { startActivity(Intent(this, CallLogsActivity::class.java)) })
+                }, onCopyLogs = { entries ->
+                    try {
+                        getSystemService(ClipboardManager::class.java).setPrimaryClip(
+                            ClipData.newPlainText("Aicy 调用日志", formatCallLogs(entries)))
+                        logs.message("已复制请求概况，不含密钥和对话正文。")
+                    } catch (error: RuntimeException) { logs.message("复制失败，请重试。") }
+                })
             }
         }
     }
@@ -64,161 +73,151 @@ class SettingsActivity : ComponentActivity() {
 }
 
 @Composable
-private fun BridgeScreen(viewModel: SettingsViewModel, onOpenAicy: () -> Unit, onOpenLogs: () -> Unit) {
+internal fun BridgeHomeScreen(viewModel: SettingsViewModel, onOpenAicy: () -> Unit) {
     val state = viewModel.state
     val colors = MiuixTheme.colorScheme
     val savedColor = if (isSystemInDarkTheme()) Color(0xFF76D9B4) else Color(0xFF258260)
     val focus = LocalFocusManager.current
-    Scaffold(containerColor = colors.surface) { insets ->
-        Column(
-            Modifier.fillMaxSize().semantics { testTagsAsResourceId = true }
-                .verticalScroll(rememberScrollState()).imePadding().padding(insets)
-                .widthIn(max = 640.dp).padding(horizontal = 20.dp).padding(top = 22.dp, bottom = 30.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(44.dp).clip(RoundedCornerShape(15.dp)).background(colors.primary), contentAlignment = Alignment.Center) {
-                    BridgeGlyph(Color.White, Modifier.size(26.dp))
-                }
-                Spacer(Modifier.width(12.dp))
-                Column(Modifier.weight(1f)) {
-                    Text("Aicy Bridge", fontSize = 29.sp, fontWeight = FontWeight.Bold, color = colors.onSurface)
-                    Text("让 Aicy 用上你的模型", fontSize = 13.sp, color = colors.onSurfaceVariantSummary)
-                }
-                Pill("API 102", colors.primary, colors.tertiaryContainer)
+    Column(
+        Modifier.fillMaxSize().semantics { testTagsAsResourceId = true }
+            .verticalScroll(rememberScrollState())
+            .widthIn(max = 640.dp).padding(horizontal = 20.dp).padding(top = 22.dp, bottom = 30.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(44.dp).clip(RoundedCornerShape(15.dp)).background(colors.primary), contentAlignment = Alignment.Center) {
+                BridgeGlyph(Color.White, Modifier.size(26.dp))
             }
-            Spacer(Modifier.height(3.dp))
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text("Aicy Bridge", fontSize = 29.sp, fontWeight = FontWeight.Bold, color = colors.onSurface)
+                Text("让 Aicy 用上你的模型", fontSize = 13.sp, color = colors.onSurfaceVariantSummary)
+            }
+            Pill("API 102", colors.primary, colors.tertiaryContainer)
+        }
+        Spacer(Modifier.height(3.dp))
+        Card(insideMargin = PaddingValues(20.dp), modifier = Modifier.fillMaxWidth()) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("第三方模型", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+                    Spacer(Modifier.height(5.dp))
+                    Text(if (state.enabled) "接管已开启" else "使用你自己的 API 渠道", fontSize = 13.sp, color = colors.onSurfaceVariantSummary)
+                }
+                Switch(checked = state.enabled, onCheckedChange = viewModel::toggle,
+                    enabled = state.configured && state.keyReadable && !state.busy,
+                    modifier = Modifier.testTag("bridge_enabled"))
+            }
+            Spacer(Modifier.height(14.dp))
+            Text(if (state.configured) "关闭接管也会保留已保存的渠道。" else "保存渠道后即可开启，配置只保存在此设备。",
+                fontSize = 12.sp, color = colors.onSurfaceVariantSummary)
+        }
+        if (state.loading) {
+            Card(insideMargin = PaddingValues(22.dp), modifier = Modifier.fillMaxWidth()) { Text("正在读取已保存的渠道…") }
+        } else {
+            if (state.message.isNotEmpty()) {
+                Notice(state.message, state.isError)
+                if (!state.keyReadable) TextButton(text = "重新读取密钥", onClick = viewModel::loadProfile)
+            }
+            if (state.configured) {
+                SectionHeading("我的渠道", "已保存到本机")
+                Card(insideMargin = PaddingValues(20.dp), modifier = Modifier.fillMaxWidth().testTag("saved_profile")) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(Modifier.size(42.dp).clip(RoundedCornerShape(14.dp)).background(colors.tertiaryContainer), contentAlignment = Alignment.Center) {
+                            BridgeGlyph(colors.primary, Modifier.size(24.dp))
+                        }
+                        Spacer(Modifier.width(12.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(runCatching { URI(state.savedUrl).host }.getOrNull() ?: "OpenAI 兼容渠道",
+                                fontSize = 17.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Spacer(Modifier.height(3.dp))
+                            Text(if (state.enabled) "正在使用" else "已停用 · 配置已保留", fontSize = 12.sp, color = colors.onSurfaceVariantSummary)
+                        }
+                        Pill("已保存", savedColor, Color(0x15258260))
+                    }
+                    Spacer(Modifier.height(18.dp))
+                    Text(state.savedModel, fontSize = 17.sp, fontWeight = FontWeight.Medium, modifier = Modifier.testTag("saved_model"))
+                    Spacer(Modifier.height(5.dp))
+                    Text(state.savedUrl, fontSize = 12.sp, color = colors.onSurfaceVariantSummary, maxLines = 2,
+                        modifier = Modifier.testTag("saved_url"))
+                    Spacer(Modifier.height(15.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(if (!state.keyReadable) "密钥待恢复" else if (state.hasKey) "密钥已加密保存" else "未设置密钥",
+                            fontSize = 12.sp, color = colors.onSurfaceVariantSummary, modifier = Modifier.weight(1f))
+                        if (!state.editing) TextButton("编辑渠道", onClick = viewModel::edit, enabled = !state.busy && !state.testing,
+                            modifier = Modifier.testTag("edit_profile"))
+                    }
+                }
+            }
+            if (state.editing) {
+                SectionHeading(if (state.configured) "编辑渠道" else "添加你的渠道", "OpenAI 兼容接口")
+                Card(insideMargin = PaddingValues(16.dp), modifier = Modifier.fillMaxWidth()) {
+                    TextField(value = state.url, onValueChange = viewModel::changeUrl, label = "API 地址",
+                        modifier = Modifier.fillMaxWidth().testTag("api_url"), singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Next), enabled = !state.busy)
+                    Spacer(Modifier.height(8.dp))
+                    Text("填写 API 前缀，例如 https://api.openai.com/v1", fontSize = 11.sp,
+                        color = colors.onSurfaceVariantSummary, modifier = Modifier.padding(horizontal = 8.dp))
+                    Spacer(Modifier.height(14.dp))
+                    var reveal by remember { mutableStateOf(false) }
+                    TextField(value = state.key, onValueChange = viewModel::changeKey,
+                        label = if (state.hasKey) "API Key（已保存，留空不修改）" else "API Key",
+                        modifier = Modifier.fillMaxWidth().testTag("api_key"), singleLine = true,
+                        visualTransformation = if (reveal) VisualTransformation.None else PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Next),
+                        enabled = !state.busy, trailingIcon = {
+                            TextButton(if (reveal) "隐藏" else "显示", onClick = { reveal = !reveal },
+                                insideMargin = PaddingValues(horizontal = 8.dp), minWidth = 38.dp, minHeight = 34.dp)
+                        })
+                    Spacer(Modifier.height(14.dp))
+                    TextField(value = state.model, onValueChange = viewModel::changeModel, label = "模型 ID",
+                        modifier = Modifier.fillMaxWidth().testTag("model_id"), singleLine = true, enabled = !state.busy,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii, imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(onDone = { focus.clearFocus() }))
+                    Spacer(Modifier.height(18.dp))
+                    TextButton(text = if (state.busy) "正在保存…" else if (state.configured) "保存修改" else "保存并启用",
+                        onClick = { focus.clearFocus(); viewModel.save() }, colors = ButtonDefaults.textButtonColorsPrimary(),
+                        enabled = !state.busy && !state.testing, modifier = Modifier.fillMaxWidth().testTag("save_profile"))
+                    if (state.configured) TextButton("取消编辑", onClick = { focus.clearFocus(); viewModel.cancelEdit() },
+                        enabled = !state.busy, modifier = Modifier.fillMaxWidth())
+                }
+            }
+            SectionHeading("连接测试", "仅发送一条测试消息")
+            Card(insideMargin = PaddingValues(20.dp), modifier = Modifier.fillMaxWidth()) {
+                Text("确认服务商和模型可用", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                Spacer(Modifier.height(6.dp))
+                Text("测试可能产生少量 API 费用。Agent 需要工具调用能力，读屏任务还需要视觉能力。",
+                    fontSize = 12.sp, color = colors.onSurfaceVariantSummary)
+                Spacer(Modifier.height(14.dp))
+                TextButton(if (state.testing) "连接中…" else "测试连接", onClick = viewModel::testConnection,
+                    enabled = !state.testing && !state.busy, modifier = Modifier.fillMaxWidth().testTag("test_connection"))
+                if (state.testing) TextButton("取消测试", onClick = viewModel::cancelTest, modifier = Modifier.fillMaxWidth())
+                if (state.testResult.isNotEmpty()) {
+                    Spacer(Modifier.height(12.dp))
+                    Text(state.testResult, fontSize = 13.sp, color = if (state.testError) colors.error else savedColor)
+                }
+            }
+            SectionHeading("运行状态", "Aicy 13.1.1")
             Card(insideMargin = PaddingValues(20.dp), modifier = Modifier.fillMaxWidth()) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text("第三方模型", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
-                        Spacer(Modifier.height(5.dp))
-                        Text(if (state.enabled) "接管已开启" else "使用你自己的 API 渠道", fontSize = 13.sp, color = colors.onSurfaceVariantSummary)
-                    }
-                    Switch(checked = state.enabled, onCheckedChange = viewModel::toggle,
-                        enabled = state.configured && state.keyReadable && !state.busy,
-                        modifier = Modifier.testTag("bridge_enabled"))
+                    Box(Modifier.size(8.dp).clip(RoundedCornerShape(4.dp)).background(
+                        if (state.status == "bridge_enabled") Color(0xFF32A873) else colors.outline))
+                    Spacer(Modifier.width(9.dp))
+                    Text(StatusText.describe(state.status), fontSize = 14.sp, modifier = Modifier.weight(1f))
+                    Spacer(Modifier.width(8.dp))
+                    TextButton("刷新", onClick = viewModel::refreshStatus, minWidth = 44.dp, insideMargin = PaddingValues(8.dp))
                 }
-                Spacer(Modifier.height(14.dp))
-                Text(if (state.configured) "关闭接管也会保留已保存的渠道。" else "保存渠道后即可开启，配置只保存在此设备。",
+                if (state.statusTime > 0) Text("上次报告 · " + DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(state.statusTime)),
+                    fontSize = 11.sp, color = colors.onSurfaceVariantSummary)
+                Spacer(Modifier.height(10.dp))
+                Text("保存或切换后，请强行停止并重新打开 Aicy。首次启用模块时，请按框架提示重启。",
                     fontSize = 12.sp, color = colors.onSurfaceVariantSummary)
+                Spacer(Modifier.height(12.dp))
+                TextButton("打开 Aicy", onClick = onOpenAicy, modifier = Modifier.fillMaxWidth())
             }
-            if (state.loading) {
-                Card(insideMargin = PaddingValues(22.dp), modifier = Modifier.fillMaxWidth()) { Text("正在读取已保存的渠道…") }
-            } else {
-                if (state.message.isNotEmpty()) {
-                    Notice(state.message, state.isError)
-                    if (!state.keyReadable) TextButton(text = "重新读取密钥", onClick = viewModel::loadProfile)
-                }
-                if (state.configured) {
-                    SectionHeading("我的渠道", "已保存到本机")
-                    Card(insideMargin = PaddingValues(20.dp), modifier = Modifier.fillMaxWidth().testTag("saved_profile")) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(Modifier.size(42.dp).clip(RoundedCornerShape(14.dp)).background(colors.tertiaryContainer), contentAlignment = Alignment.Center) {
-                                BridgeGlyph(colors.primary, Modifier.size(24.dp))
-                            }
-                            Spacer(Modifier.width(12.dp))
-                            Column(Modifier.weight(1f)) {
-                                Text(runCatching { URI(state.savedUrl).host }.getOrNull() ?: "OpenAI 兼容渠道",
-                                    fontSize = 17.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                Spacer(Modifier.height(3.dp))
-                                Text(if (state.enabled) "正在使用" else "已停用 · 配置已保留", fontSize = 12.sp, color = colors.onSurfaceVariantSummary)
-                            }
-                            Pill("已保存", savedColor, Color(0x15258260))
-                        }
-                        Spacer(Modifier.height(18.dp))
-                        Text(state.savedModel, fontSize = 17.sp, fontWeight = FontWeight.Medium, modifier = Modifier.testTag("saved_model"))
-                        Spacer(Modifier.height(5.dp))
-                        Text(state.savedUrl, fontSize = 12.sp, color = colors.onSurfaceVariantSummary, maxLines = 2,
-                            modifier = Modifier.testTag("saved_url"))
-                        Spacer(Modifier.height(15.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(if (!state.keyReadable) "密钥待恢复" else if (state.hasKey) "密钥已加密保存" else "未设置密钥",
-                                fontSize = 12.sp, color = colors.onSurfaceVariantSummary, modifier = Modifier.weight(1f))
-                            if (!state.editing) TextButton("编辑渠道", onClick = viewModel::edit, enabled = !state.busy && !state.testing,
-                                modifier = Modifier.testTag("edit_profile"))
-                        }
-                    }
-                }
-                if (state.editing) {
-                    SectionHeading(if (state.configured) "编辑渠道" else "添加你的渠道", "OpenAI 兼容接口")
-                    Card(insideMargin = PaddingValues(16.dp), modifier = Modifier.fillMaxWidth()) {
-                        TextField(value = state.url, onValueChange = viewModel::changeUrl, label = "API 地址",
-                            modifier = Modifier.fillMaxWidth().testTag("api_url"), singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Next), enabled = !state.busy)
-                        Spacer(Modifier.height(8.dp))
-                        Text("填写 API 前缀，例如 https://api.openai.com/v1", fontSize = 11.sp,
-                            color = colors.onSurfaceVariantSummary, modifier = Modifier.padding(horizontal = 8.dp))
-                        Spacer(Modifier.height(14.dp))
-                        var reveal by remember { mutableStateOf(false) }
-                        TextField(value = state.key, onValueChange = viewModel::changeKey,
-                            label = if (state.hasKey) "API Key（已保存，留空不修改）" else "API Key",
-                            modifier = Modifier.fillMaxWidth().testTag("api_key"), singleLine = true,
-                            visualTransformation = if (reveal) VisualTransformation.None else PasswordVisualTransformation(),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Next),
-                            enabled = !state.busy, trailingIcon = {
-                                TextButton(if (reveal) "隐藏" else "显示", onClick = { reveal = !reveal },
-                                    insideMargin = PaddingValues(horizontal = 8.dp), minWidth = 38.dp, minHeight = 34.dp)
-                            })
-                        Spacer(Modifier.height(14.dp))
-                        TextField(value = state.model, onValueChange = viewModel::changeModel, label = "模型 ID",
-                            modifier = Modifier.fillMaxWidth().testTag("model_id"), singleLine = true, enabled = !state.busy,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii, imeAction = ImeAction.Done),
-                            keyboardActions = KeyboardActions(onDone = { focus.clearFocus() }))
-                        Spacer(Modifier.height(18.dp))
-                        TextButton(text = if (state.busy) "正在保存…" else if (state.configured) "保存修改" else "保存并启用",
-                            onClick = { focus.clearFocus(); viewModel.save() }, colors = ButtonDefaults.textButtonColorsPrimary(),
-                            enabled = !state.busy && !state.testing, modifier = Modifier.fillMaxWidth().testTag("save_profile"))
-                        if (state.configured) TextButton("取消编辑", onClick = { focus.clearFocus(); viewModel.cancelEdit() },
-                            enabled = !state.busy, modifier = Modifier.fillMaxWidth())
-                    }
-                }
-                SectionHeading("连接测试", "仅发送一条测试消息")
-                Card(insideMargin = PaddingValues(20.dp), modifier = Modifier.fillMaxWidth()) {
-                    Text("确认服务商和模型可用", fontSize = 16.sp, fontWeight = FontWeight.Medium)
-                    Spacer(Modifier.height(6.dp))
-                    Text("测试可能产生少量 API 费用。Agent 需要工具调用能力，读屏任务还需要视觉能力。",
-                        fontSize = 12.sp, color = colors.onSurfaceVariantSummary)
-                    Spacer(Modifier.height(14.dp))
-                    TextButton(if (state.testing) "连接中…" else "测试连接", onClick = viewModel::testConnection,
-                        enabled = !state.testing && !state.busy, modifier = Modifier.fillMaxWidth().testTag("test_connection"))
-                    if (state.testing) TextButton("取消测试", onClick = viewModel::cancelTest, modifier = Modifier.fillMaxWidth())
-                    if (state.testResult.isNotEmpty()) {
-                        Spacer(Modifier.height(12.dp))
-                        Text(state.testResult, fontSize = 13.sp, color = if (state.testError) colors.error else savedColor)
-                    }
-                }
-                SectionHeading("调用日志", "最近 200 条")
-                Card(insideMargin = PaddingValues(20.dp), modifier = Modifier.fillMaxWidth()) {
-                    Text("查看请求状态与错误", fontSize = 16.sp, fontWeight = FontWeight.Medium)
-                    Spacer(Modifier.height(6.dp))
-                    Text("记录 Aicy 调用和连接测试的时间、模型、HTTP 状态与耗时。", fontSize = 12.sp, color = colors.onSurfaceVariantSummary)
-                    Spacer(Modifier.height(12.dp))
-                    TextButton("查看调用日志", onClick = onOpenLogs, modifier = Modifier.fillMaxWidth().testTag("open_call_logs"))
-                }
-                SectionHeading("运行状态", "Aicy 13.1.1")
-                Card(insideMargin = PaddingValues(20.dp), modifier = Modifier.fillMaxWidth()) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(Modifier.size(8.dp).clip(RoundedCornerShape(4.dp)).background(
-                            if (state.status == "bridge_enabled") Color(0xFF32A873) else colors.outline))
-                        Spacer(Modifier.width(9.dp))
-                        Text(StatusText.describe(state.status), fontSize = 14.sp, modifier = Modifier.weight(1f))
-                        Spacer(Modifier.width(8.dp))
-                        TextButton("刷新", onClick = viewModel::refreshStatus, minWidth = 44.dp, insideMargin = PaddingValues(8.dp))
-                    }
-                    if (state.statusTime > 0) Text("上次报告 · " + DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(state.statusTime)),
-                        fontSize = 11.sp, color = colors.onSurfaceVariantSummary)
-                    Spacer(Modifier.height(10.dp))
-                    Text("保存或切换后，请强行停止并重新打开 Aicy。首次启用模块时，请按框架提示重启。",
-                        fontSize = 12.sp, color = colors.onSurfaceVariantSummary)
-                    Spacer(Modifier.height(12.dp))
-                    TextButton("打开 Aicy", onClick = onOpenAicy, modifier = Modifier.fillMaxWidth())
-                }
-                Text("密钥在本机加密存储。对话会发送至你设置的服务商。", fontSize = 11.sp,
-                    color = colors.onSurfaceVariantSummary, modifier = Modifier.padding(horizontal = 8.dp))
-                Text("Aicy OpenAI Bridge  ${BuildConfig.VERSION_NAME}  ·  Miuix", fontSize = 11.sp,
-                    color = colors.onSurfaceVariantSummary, modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 6.dp))
-            }
+            Text("密钥在本机加密存储。对话会发送至你设置的服务商。", fontSize = 11.sp,
+                color = colors.onSurfaceVariantSummary, modifier = Modifier.padding(horizontal = 8.dp))
+            Text("Aicy OpenAI Bridge  ${BuildConfig.VERSION_NAME}  ·  Miuix", fontSize = 11.sp,
+                color = colors.onSurfaceVariantSummary, modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 6.dp))
         }
     }
 }
