@@ -48,8 +48,12 @@ public final class CallLogReporter implements io.github.aicybridge.hook.HttpCall
         private final AtomicBoolean accepted = new AtomicBoolean();
         private final AtomicBoolean ended = new AtomicBoolean();
 
-        public void response(int status) { try { end("response", status, status < 200 || status >= 300 ? "http" : ""); } catch (Throwable ignored) { } }
-        public void success() { try { end("succeeded", 0, ""); } catch (Throwable ignored) { } }
+        public void response(int status) {
+            try { end("response", status, status == 0 ? "status_unavailable" : status < 200 || status >= 300 ? "http" : ""); }
+            catch (Throwable ignored) { }
+        }
+        public void success() { success(0); }
+        public void success(int status) { try { end("succeeded", status, ""); } catch (Throwable ignored) { } }
         public void failure(Throwable error, boolean cancelled) {
             try {
                 String code = CallLogPrivacy.error(error, cancelled);

@@ -33,10 +33,6 @@ public final class NativeHttpClients {
      * The caller owns the returned client and must retain or close it deliberately.
      */
     public static Object create(ClassLoader loader) throws Throwable {
-        return create(loader, null);
-    }
-
-    public static Object create(ClassLoader loader, HttpCallObserver observer) throws Throwable {
         Layout abi = new Layout(loader);
         Object unit = Class.forName("kotlin.Unit", true, loader).getField("INSTANCE").get(null);
         Object configureBuilder = callback(loader, abi.function, unit, value -> {
@@ -45,10 +41,6 @@ public final class NativeHttpClients {
             abi.okHttpSslRedirects.setBoolean(value, false);
             if (abi.okHttpRedirects.getBoolean(value) || abi.okHttpSslRedirects.getBoolean(value)) {
                 throw new IllegalStateException("Native OkHttp redirects remain enabled");
-            }
-            if (observer != null) {
-                try { NativeCallLogging.attach(loader, value, observer); }
-                catch (Throwable unavailable) { try { observer.unavailable(); } catch (Throwable ignored) { } }
             }
         });
         Object configureTransport = callback(loader, abi.function, unit, value -> {

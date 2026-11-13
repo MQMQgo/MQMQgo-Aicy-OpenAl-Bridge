@@ -65,6 +65,9 @@ def main():
         assert not any(c.startswith("Lio/github/libxposed/") for c in classes), "Framework API must be compileOnly"
         assert not any(c.startswith("Lcom/flyme/") for c in classes), "Vendor implementations must not be bundled"
         assert not any(c.startswith("Lbi/") for c in classes), "Native OkHttp contracts must come from the target"
+        if 'Lio/github/aicybridge/hook/NativeRequestLogging;' in classes:
+            assert 'Lio/github/aicybridge/hook/NativeLogBridge;' not in classes, 'Direct request logging must not load the old dynamic bridge'
+            assert not embedded, 'The current request logger does not inject DEX'
         if 'Lio/github/aicybridge/hook/NativeLogBridge;' in classes:
             assert len(embedded) == 1, 'Exactly one logging bridge is expected'
             verify_logging_bridge(base64.b64decode(next(iter(embedded)), validate=True))

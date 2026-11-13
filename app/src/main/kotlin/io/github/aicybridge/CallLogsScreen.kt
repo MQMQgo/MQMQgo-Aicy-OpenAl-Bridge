@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -74,8 +75,15 @@ internal fun CallLogsScreen(model: CallLogsViewModel, onCopy: (List<CallLogStore
     val state = model.state
     val colors = MiuixTheme.colorScheme
     var failuresOnly by rememberSaveable { mutableStateOf(false) }
+    var successesOnly by rememberSaveable { mutableStateOf(false) }
+    val filter = if (failuresOnly) 2 else if (successesOnly) 1 else 0
+    val selectFilter: (Int) -> Unit = { failuresOnly = it == 2; successesOnly = it == 1 }
     var confirmClear by remember { mutableStateOf(false) }
-    val visible = if (failuresOnly) state.entries.filter { it.isFailure } else state.entries
+    val visible = when (filter) {
+        1 -> state.entries.filter { it.isSuccess }
+        2 -> state.entries.filter { it.isFailure }
+        else -> state.entries
+    }
     LazyColumn(Modifier.fillMaxSize().testTag("call_logs_list").semantics { testTagsAsResourceId = true },
         contentPadding = PaddingValues(start = 20.dp, top = 22.dp, end = 20.dp, bottom = bottomPadding), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
@@ -83,6 +91,8 @@ internal fun CallLogsScreen(model: CallLogsViewModel, onCopy: (List<CallLogStore
                 Column(Modifier.weight(1f)) {
                     Text("调用日志", fontSize = 29.sp, fontWeight = FontWeight.Bold)
                     Text("最近 ${state.entries.size} 条 · 最多保留 200 条", fontSize = 12.sp, color = colors.onSurfaceVariantSummary)
+                    Text("成功 ${state.entries.count { it.isSuccess }} 条 · 失败 ${state.entries.count { it.isFailure }} 条",
+                        fontSize = 12.sp, color = colors.onSurfaceVariantSummary)
                 }
             }
         }
@@ -122,10 +132,12 @@ internal fun CallLogsScreen(model: CallLogsViewModel, onCopy: (List<CallLogStore
         }
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TextButton("全部", onClick = { failuresOnly = false }, modifier = Modifier.weight(1f).testTag("all_call_logs"),
-                    colors = if (!failuresOnly) ButtonDefaults.textButtonColorsPrimary() else ButtonDefaults.textButtonColors())
-                TextButton("失败", onClick = { failuresOnly = true }, modifier = Modifier.weight(1f).testTag("failed_call_logs"),
-                    colors = if (failuresOnly) ButtonDefaults.textButtonColorsPrimary() else ButtonDefaults.textButtonColors())
+                TextButton("全部", onClick = { selectFilter(0) }, modifier = Modifier.weight(1f).testTag("all_call_logs").semantics { selected = filter == 0 },
+                    colors = if (filter == 0) ButtonDefaults.textButtonColorsPrimary() else ButtonDefaults.textButtonColors())
+                TextButton("成功", onClick = { selectFilter(1) }, modifier = Modifier.weight(1f).testTag("successful_call_logs").semantics { selected = filter == 1 },
+                    colors = if (filter == 1) ButtonDefaults.textButtonColorsPrimary() else ButtonDefaults.textButtonColors())
+                TextButton("失败", onClick = { selectFilter(2) }, modifier = Modifier.weight(1f).testTag("failed_call_logs").semantics { selected = filter == 2 },
+                    colors = if (filter == 2) ButtonDefaults.textButtonColorsPrimary() else ButtonDefaults.textButtonColors())
             }
         }
         if (state.message.isNotEmpty()) item { Text(state.message, fontSize = 13.sp, color = colors.primary) }
@@ -136,7 +148,7 @@ internal fun CallLogsScreen(model: CallLogsViewModel, onCopy: (List<CallLogStore
         if (state.loading) item { Text("正在读取日志…") }
         else if (visible.isEmpty()) item {
             Card(insideMargin = PaddingValues(24.dp), modifier = Modifier.fillMaxWidth().testTag("empty_call_logs")) {
-                Text(if (failuresOnly) "暂无失败记录" else "暂无调用记录", fontSize = 17.sp, fontWeight = FontWeight.Medium)
+                Text(when (filter) { 1 -> "暂无成功记录"; 2 -> "暂无失败记录"; else -> "暂无调用记录" }, fontSize = 17.sp, fontWeight = FontWeight.Medium)
                 Spacer(Modifier.height(8.dp))
                 Text("使用 Aicy 发起对话，或在模块中测试连接后，可在这里查看请求概况。", fontSize = 13.sp, color = colors.onSurfaceVariantSummary)
             }
@@ -146,8 +158,9 @@ internal fun CallLogsScreen(model: CallLogsViewModel, onCopy: (List<CallLogStore
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(entry.sourceLabel() + " · " + entry.stageLabel(), fontSize = 12.sp, color = colors.onSurfaceVariantSummary, modifier = Modifier.weight(1f))
                     Text(entry.stateLabel(), fontSize = 12.sp, fontWeight = FontWeight.Medium,
-                        color = if (entry.isFailure) colors.error else if (entry.state == "started") colors.primary
-                        else if (isSystemInDarkTheme()) Color(0xFF76D9B4) else Color(0xFF258260))
+                        color = if (entry.isFailure) colors.error else if (entry.isSuccess) {
+                            if (isSystemInDarkTheme()) Color(0xFF76D9B4) else Color(0xFF258260)
+                        } else colors.onSurfaceVariantSummary)
                 }
                 Spacer(Modifier.height(9.dp))
                 if (entry.model.isNotEmpty()) Text(entry.model, fontSize = 17.sp, fontWeight = FontWeight.Medium)

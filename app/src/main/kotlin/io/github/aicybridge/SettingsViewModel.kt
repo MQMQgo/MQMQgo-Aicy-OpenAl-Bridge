@@ -8,9 +8,11 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.aicybridge.core.OpenAiClient
 import io.github.aicybridge.core.OpenAiException
+import io.github.aicybridge.core.OpenAiModelsClient
 import io.github.aicybridge.core.ProtocolException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -37,6 +39,12 @@ data class SettingsUiState(
     val testing: Boolean = false,
     val testResult: String = "",
     val testError: Boolean = false,
+    val fetchingModels: Boolean = false,
+    val availableModels: List<String> = emptyList(),
+    val modelQuery: String = "",
+    val modelsMessage: String = "",
+    val modelsError: Boolean = false,
+    val modelPickerOpen: Boolean = false,
     val status: String = "waiting",
     val statusTime: Long = 0,
 )
@@ -47,10 +55,13 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     var state by mutableStateOf(SettingsUiState())
         private set
     @Volatile private var activeCall: OpenAiClient.Call? = null
+    private var modelsCall: OpenAiModelsClient.Call? = null
+    private var modelsJob: Job? = null
 
     init { loadProfile() }
 
     fun loadProfile() {
+        invalidateModels()
         viewModelScope.launch {
             val saved = withContext(Dispatchers.IO) { store.read() }
             state = state.copy(
@@ -65,14 +76,14 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun edit() { state = state.copy(editing = true, url = state.savedUrl, model = state.savedModel, key = "", message = "", testResult = "") }
-    fun cancelEdit() { state = state.copy(editing = false, key = "", message = "", testResult = "") }
-    fun changeUrl(value: String) { state = state.copy(url = value, testResult = "", message = "") }
+    fun edit() { invalidateModels(); state = state.copy(editing = true, url = state.savedUrl, model = state.savedModel, key = "", message = "", testResult = "") }
+    fun cancelEdit() { invalidateModels(); state = state.copy(editing = false, key = "", message = "", testResult = "") }
+    fun changeUrl(value: String) { invalidateModels(); state = state.copy(url = value, testResult = "", message = "") }
     fun changeModel(value: String) { state = state.copy(model = value, testResult = "", message = "") }
-    fun changeKey(value: String) { state = state.copy(key = value, testResult = "", message = "") }
+    fun changeKey(value: String) { invalidateModels(); state = state.copy(key = value, testResult = "", message = "") }
 
     fun save() {
-        if (state.busy || state.loading) return
+        if (state.busy || state.loading || state.testing || state.fetchingModels) return
         val draft = state
         state = state.copy(busy = true, message = "")
         viewModelScope.launch {
@@ -119,25 +130,88 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun showMessage(message: String) { state = state.copy(message = message, isError = false) }
     fun cancelTest() { activeCall?.cancel() }
 
+    private class Credentials(val url: String, val key: String)
+
+    private fun credentials(draft: SettingsUiState): Credentials {
+        val url = if (draft.editing) draft.url.trim() else draft.savedUrl
+        OpenAiClient.chatCompletionsUrl(url)
+        val saved = store.read()
+        val entered = if (draft.editing) draft.key.trim() else ""
+        if (entered.isEmpty() && saved.hasApiKey) {
+            if (!saved.keyReadable) throw GeneralSecurityException()
+            val a = URI(saved.baseUrl); val b = URI(url)
+            if (a.host == null || !a.host.equals(b.host, true)
+                || (if (a.port < 0) 443 else a.port) != (if (b.port < 0) 443 else b.port)) throw IllegalArgumentException()
+        }
+        return Credentials(url, entered.ifEmpty { saved.apiKey })
+    }
+
+    private fun invalidateModels() {
+        modelsCall?.cancel(); modelsJob?.cancel(); modelsCall = null; modelsJob = null
+        state = state.copy(fetchingModels = false, availableModels = emptyList(), modelQuery = "",
+            modelsMessage = "", modelsError = false, modelPickerOpen = false)
+    }
+
+    fun cancelModels() { invalidateModels(); state = state.copy(modelsMessage = "已取消获取模型。") }
+    fun openModelPicker() { if (state.availableModels.isNotEmpty()) state = state.copy(modelPickerOpen = true) }
+    fun closeModelPicker() { state = state.copy(modelPickerOpen = false) }
+    fun searchModels(query: String) { state = state.copy(modelQuery = query) }
+    fun chooseModel(id: String) {
+        if (id !in state.availableModels) return
+        changeModel(id)
+        state = state.copy(modelPickerOpen = false, modelsMessage = "已选择模型，保存渠道后生效。", modelsError = false)
+    }
+
+    fun fetchModels() {
+        if (state.fetchingModels || state.testing || state.busy || state.loading) return
+        val draft = state
+        state = state.copy(fetchingModels = true, modelsMessage = "", modelsError = false, modelPickerOpen = false)
+        modelsJob = viewModelScope.launch {
+            var call: OpenAiModelsClient.Call? = null
+            var trace: CallLogReporter.Trace? = null
+            try {
+                val access = withContext(Dispatchers.IO) { credentials(draft) }
+                val request = OpenAiModelsClient(access.url, access.key, 15000, 30000).newCall()
+                call = request
+                modelsCall = request
+                trace = runCatching { CallLogReporter(getApplication<Application>(), access.url, "", access.key).begin("module", "models") }.getOrNull()
+                val ids = withContext(Dispatchers.IO) { request.execute() }
+                trace?.success(request.responseCode)
+                state = state.copy(fetchingModels = false, availableModels = ids, modelQuery = "", modelPickerOpen = ids.isNotEmpty(),
+                    modelsMessage = if (ids.isEmpty()) "服务商未返回可选模型，可继续手动填写模型 ID。" else "已获取 ${ids.size} 个模型。", modelsError = false)
+            } catch (cancelled: CancellationException) {
+                trace?.failure(cancelled, true)
+                throw cancelled
+            } catch (error: Exception) {
+                trace?.failure(error, call?.isCancelled == true)
+                state = state.copy(fetchingModels = false, modelsError = true, modelsMessage = when (error) {
+                    is GeneralSecurityException -> "密钥暂时不可读取，请重试或填写新的密钥。"
+                    is IllegalArgumentException -> "更换服务商时请填写新的 API Key。"
+                    is OpenAiException -> if (error.statusCode == 404 || error.statusCode == 405) "服务商未提供标准模型列表接口，请手动填写模型 ID。"
+                        else "获取模型失败（HTTP ${error.statusCode}），请检查地址、密钥和访问权限。"
+                    is ProtocolException -> "模型列表地址或返回格式无效，可继续手动填写模型 ID。"
+                    is java.io.InterruptedIOException -> "获取模型超时，请检查网络后重试。"
+                    is javax.net.ssl.SSLException -> "HTTPS 证书校验失败，请检查设备时间与服务商证书。"
+                    else -> "无法获取模型，请检查服务商地址与网络，或手动填写模型 ID。"
+                })
+            } finally {
+                if (modelsCall === call) modelsCall = null
+            }
+        }
+    }
+
     fun testConnection() {
-        if (state.testing || state.busy || state.loading) return
+        if (state.testing || state.busy || state.loading || state.fetchingModels) return
         val draft = state
         state = state.copy(testing = true, testResult = "", message = "")
         viewModelScope.launch {
             val result = withContext(Dispatchers.IO) {
                 var trace: CallLogReporter.Trace? = null
                 try {
-                    val saved = store.read()
-                    val url = if (draft.editing) draft.url.trim() else draft.savedUrl
+                    val access = credentials(draft)
+                    val url = access.url
                     val model = if (draft.editing) draft.model.trim() else draft.savedModel
-                    val entered = if (draft.editing) draft.key.trim() else ""
-                    if (entered.isEmpty() && saved.hasApiKey) {
-                        if (!saved.keyReadable) throw GeneralSecurityException()
-                        val a = URI(saved.baseUrl); val b = URI(url)
-                        if (a.host == null || !a.host.equals(b.host, true)
-                            || (if (a.port < 0) 443 else a.port) != (if (b.port < 0) 443 else b.port)) throw IllegalArgumentException()
-                    }
-                    val key = entered.ifEmpty { saved.apiKey }
+                    val key = access.key
                     val config = OpenAiClient.Config(url, key, model, 15000, 45000)
                     trace = runCatching { CallLogReporter(getApplication<Application>(), url, model, key).begin("test", "test") }.getOrNull()
                     val call = OpenAiClient(config).newCall(
@@ -145,7 +219,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                     activeCall = call
                     val choices = call.execute().optJSONArray("choices")
                     if (choices?.optJSONObject(0)?.optJSONObject("message") != null) {
-                        trace?.success()
+                        trace?.success(call.responseCode)
                         "连接成功，模型已返回消息。" to false
                     } else {
                         trace?.failure(ProtocolException("Missing completion message"), false)
@@ -168,5 +242,5 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    override fun onCleared() { activeCall?.cancel(); super.onCleared() }
+    override fun onCleared() { activeCall?.cancel(); modelsCall?.cancel() }
 }

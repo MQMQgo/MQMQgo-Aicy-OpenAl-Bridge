@@ -175,12 +175,29 @@ internal fun BridgeHomeScreen(viewModel: SettingsViewModel, onOpenAicy: () -> Un
                         modifier = Modifier.fillMaxWidth().testTag("model_id"), singleLine = true, enabled = !state.busy,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii, imeAction = ImeAction.Done),
                         keyboardActions = KeyboardActions(onDone = { focus.clearFocus() }))
+                    Spacer(Modifier.height(12.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        TextButton(if (state.fetchingModels) "获取中…" else "获取模型", onClick = { focus.clearFocus(); viewModel.fetchModels() },
+                            enabled = !state.fetchingModels && !state.testing && !state.busy,
+                            modifier = Modifier.weight(1f).testTag("fetch_models"))
+                        if (state.fetchingModels) TextButton("取消获取", onClick = viewModel::cancelModels,
+                            modifier = Modifier.weight(1f).testTag("cancel_fetch_models"))
+                        else if (state.availableModels.isNotEmpty()) TextButton("选择模型（${state.availableModels.size}）", onClick = viewModel::openModelPicker,
+                            enabled = !state.busy, modifier = Modifier.weight(1f).testTag("select_model"))
+                    }
+                    if (state.modelsMessage.isNotEmpty()) {
+                        Spacer(Modifier.height(8.dp))
+                        Text(state.modelsMessage, fontSize = 12.sp, color = if (state.modelsError) colors.error else colors.onSurfaceVariantSummary)
+                    }
                     Spacer(Modifier.height(18.dp))
                     TextButton(text = if (state.busy) "正在保存…" else if (state.configured) "保存修改" else "保存并启用",
                         onClick = { focus.clearFocus(); viewModel.save() }, colors = ButtonDefaults.textButtonColorsPrimary(),
-                        enabled = !state.busy && !state.testing, modifier = Modifier.fillMaxWidth().testTag("save_profile"))
-                    if (state.configured) TextButton("取消编辑", onClick = { focus.clearFocus(); viewModel.cancelEdit() },
-                        enabled = !state.busy, modifier = Modifier.fillMaxWidth())
+                        enabled = !state.busy && !state.testing && !state.fetchingModels, modifier = Modifier.fillMaxWidth().testTag("save_profile"))
+                    if (state.configured) {
+                        Spacer(Modifier.height(12.dp))
+                        TextButton("取消编辑", onClick = { focus.clearFocus(); viewModel.cancelEdit() },
+                            enabled = !state.busy, modifier = Modifier.fillMaxWidth())
+                    }
                 }
             }
             SectionHeading("连接测试", "仅发送一条测试消息")
@@ -191,8 +208,11 @@ internal fun BridgeHomeScreen(viewModel: SettingsViewModel, onOpenAicy: () -> Un
                     fontSize = 12.sp, color = colors.onSurfaceVariantSummary)
                 Spacer(Modifier.height(14.dp))
                 TextButton(if (state.testing) "连接中…" else "测试连接", onClick = viewModel::testConnection,
-                    enabled = !state.testing && !state.busy, modifier = Modifier.fillMaxWidth().testTag("test_connection"))
-                if (state.testing) TextButton("取消测试", onClick = viewModel::cancelTest, modifier = Modifier.fillMaxWidth())
+                    enabled = !state.testing && !state.busy && !state.fetchingModels, modifier = Modifier.fillMaxWidth().testTag("test_connection"))
+                if (state.testing) {
+                    Spacer(Modifier.height(12.dp))
+                    TextButton("取消测试", onClick = viewModel::cancelTest, modifier = Modifier.fillMaxWidth())
+                }
                 if (state.testResult.isNotEmpty()) {
                     Spacer(Modifier.height(12.dp))
                     Text(state.testResult, fontSize = 13.sp, color = if (state.testError) colors.error else savedColor)
@@ -222,6 +242,7 @@ internal fun BridgeHomeScreen(viewModel: SettingsViewModel, onOpenAicy: () -> Un
                 color = colors.onSurfaceVariantSummary, modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 6.dp))
         }
     }
+    ModelPicker(state, viewModel::searchModels, viewModel::chooseModel, viewModel::closeModelPicker)
 }
 
 @Composable

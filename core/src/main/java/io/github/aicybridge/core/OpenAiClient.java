@@ -85,6 +85,7 @@ public final class OpenAiClient {
         private final AtomicBoolean started = new AtomicBoolean();
         private volatile boolean cancelled;
         private volatile HttpURLConnection active;
+        private volatile int responseCode;
 
         private Call(JSONObject request) { this.request = request; }
 
@@ -95,6 +96,7 @@ public final class OpenAiClient {
         }
 
         public boolean isCancelled() { return cancelled; }
+        public int getResponseCode() { return responseCode; }
 
         public JSONObject execute() throws IOException {
             start();
@@ -191,6 +193,7 @@ public final class OpenAiClient {
 
         private InputStream successBody(HttpURLConnection connection) throws IOException {
             int status = connection.getResponseCode();
+            responseCode = status;
             checkCancelled();
             if (status < 200 || status >= 300) {
                 InputStream error = connection.getErrorStream();
@@ -240,7 +243,13 @@ public final class OpenAiClient {
                 .onMalformedInput(CodingErrorAction.REPORT).onUnmappableCharacter(CodingErrorAction.REPORT));
     }
 
-    private static String readBody(InputStream input, int maxBytes) throws IOException {
+    public static URL modelsUrl(String baseUrl) throws ProtocolException {
+        String chat = chatCompletionsUrl(baseUrl).toExternalForm();
+        try { return new URL(chat.substring(0, chat.length() - "chat/completions".length()) + "models"); }
+        catch (java.net.MalformedURLException invalid) { throw new ProtocolException("Invalid models URL", invalid); }
+    }
+
+    static String readBody(InputStream input, int maxBytes) throws IOException {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         byte[] buffer = new byte[8192];
         int count;
@@ -253,7 +262,7 @@ public final class OpenAiClient {
                 .decode(java.nio.ByteBuffer.wrap(output.toByteArray())).toString();
     }
 
-    private static JSONObject parseJson(String body, String message) throws ProtocolException {
+    static JSONObject parseJson(String body, String message) throws ProtocolException {
         try { return new JSONObject(body); }
         catch (JSONException e) { throw new ProtocolException(message, e); }
     }

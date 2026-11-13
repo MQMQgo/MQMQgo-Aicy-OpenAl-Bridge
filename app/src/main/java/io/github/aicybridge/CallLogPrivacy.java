@@ -11,7 +11,7 @@ public final class CallLogPrivacy {
     private CallLogPrivacy() { }
     private static final Set<String> ERRORS = new HashSet<>(Arrays.asList(
             "", "http", "dns", "timeout", "tls", "connection", "cancelled", "protocol",
-            "credential", "compatibility", "io", "internal", "logging_unavailable"));
+            "credential", "compatibility", "io", "internal", "logging_unavailable", "status_unavailable"));
 
     public static boolean knownError(String code) { return ERRORS.contains(code); }
 
@@ -55,6 +55,7 @@ public final class CallLogPrivacy {
 
     public static String describeError(String error) {
         switch (error) {
+            case "status_unavailable": return "已收到响应，但无法读取 HTTP 状态";
             case "http": return "服务商返回错误状态";
             case "dns": return "无法解析服务商域名";
             case "timeout": return "连接或读取超时";

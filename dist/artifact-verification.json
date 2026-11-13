@@ -1,15 +1,15 @@
 {
-  "apk": "aicy-openai-bridge-v0.3.2-api102.apk",
-  "version_name": "0.3.2",
-  "version_code": 6,
+  "apk": "aicy-openai-bridge-v0.4.0-api102.apk",
+  "version_name": "0.4.0",
+  "version_code": 7,
   "bytes": 7501559,
-  "sha256": "dc4f7cf62900f7bd1b9e912400402e7a7c2c5cc39e71beb4d3d5dc5d50a9afd0",
+  "sha256": "dfb40133e6c8a96e7a5ce61a2dd6e539be0ca76e5c4c776466f90d5975afa923",
   "signing_certificate_sha256": "85e5d46dea60f76910f4b62c94333355f4aaccf84904d7659bf67a62284dc7cf",
   "libxposed_min_api": 102,
   "libxposed_target_api": 102,
   "miuix_version": "0.9.4",
   "lint_errors": 0,
-  "lint_warnings": 6,
+  "lint_warnings": 4,
   "local_tests": {
     "io.github.aicybridge.CallLogPrivacyTest": {
       "tests": 4,
@@ -41,6 +41,12 @@
       "errors": 0,
       "skipped": 0
     },
+    "io.github.aicybridge.ModelPickerScreenTest": {
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
     "io.github.aicybridge.SettingsScreenTest": {
       "tests": 5,
       "failures": 0,
@@ -53,7 +59,13 @@
       "errors": 0,
       "skipped": 0
     },
-    "io.github.aicybridge.hook.NativeCallLoggingTest": {
+    "io.github.aicybridge.hook.NativeRequestLoggingTest": {
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "io.github.aicybridge.hook.NativeRequestReportingTest": {
       "tests": 4,
       "failures": 0,
       "errors": 0,
@@ -71,6 +83,12 @@
       "errors": 0,
       "skipped": 0
     },
+    "io.github.aicybridge.core.OpenAiModelsClientTest": {
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
     "io.github.aicybridge.core.ProtocolTest": {
       "tests": 8,
       "failures": 0,
@@ -78,17 +96,17 @@
       "skipped": 0
     }
   },
-  "generated_bridge_jvm_tests": 1,
-  "generated_bridge_reproducible": true,
-  "target_abi_classes_verified": 25,
-  "embedded_bridge_classes": 1,
+  "target_abi_classes_verified": 24,
+  "embedded_bridge_classes": 0,
   "device_tests_run": false,
   "hardware_keystore_verified": false,
-  "main_dex_classes": 14704,
+  "main_dex_classes": 14735,
   "glass_effect_min_api": 33,
   "backdrop_blur_min_api": 31,
   "settings_ui_test_sdks": [
     29,
     35
-  ]
+  ],
+  "uses_dynamic_log_bridge": false,
+  "native_log_backend": "api102_realcall"
 }

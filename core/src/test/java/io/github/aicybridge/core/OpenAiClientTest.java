@@ -45,6 +45,7 @@ public class OpenAiClientTest {
         FakeConnection connection = new FakeConnection(200, "application/json", "{\"choices\":[]}");
         OpenAiClient.Call call = client(connection).newCall(request());
         assertEquals(0, call.execute().getJSONArray("choices").length());
+        assertEquals(200, call.getResponseCode());
         JSONObject sent = new JSONObject(new String(connection.sent.toByteArray(), StandardCharsets.UTF_8));
         assertEquals("custom-model", sent.getString("model"));
         assertFalse(sent.getBoolean("stream"));

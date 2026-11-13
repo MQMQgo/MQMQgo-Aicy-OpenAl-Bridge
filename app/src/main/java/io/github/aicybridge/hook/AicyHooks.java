@@ -98,6 +98,14 @@ public final class AicyHooks {
             for (String name : new String[]{"a", "b", "c", "d", "e", "f", "g", "h"}) field(config, name);
             NativeHttpClients.verify(loader);
 
+            try {
+                NativeRequestLogging requests = NativeRequestLogging.create(loader, endpoint, key, callLogs);
+                module.hook(requests.execution).setExceptionMode(ExceptionMode.PASSTHROUGH).setId("aicybridge.native.request-log").intercept(chain -> {
+                    if (!active) return chain.proceed();
+                    return requests.observe(chain.getThisObject(), () -> chain.proceed());
+                });
+            } catch (Throwable unavailable) { callLogs.unavailable(); }
+
             module.hook(method(config, "toString")).setExceptionMode(ExceptionMode.PASSTHROUGH).setId("aicybridge.redact.config").intercept(chain -> {
                 if (active && ownedConfig(chain.getThisObject())) return "OpenAiCompatibleConfig(<private API settings>)";
                 return chain.proceed();
@@ -118,7 +126,7 @@ public final class AicyHooks {
                 try {
                     Object ownConfig = configCtor.newInstance(key, model, endpoint, get(old, "d"), "openai-compatible",
                             get(old, "g"), get(old, "h"));
-                    pureClient = NativeHttpClients.create(loader, callLogs);
+                    pureClient = NativeHttpClients.create(loader);
                     Object ownStream = streamCtor.newInstance(get(old, "g"), streamFactory.get(oldStream));
                     Object result = chain.proceed(new Object[]{ownConfig, pureClient, ownStream, null, chain.getArg(4)});
                     Object receiver = chain.getThisObject();
