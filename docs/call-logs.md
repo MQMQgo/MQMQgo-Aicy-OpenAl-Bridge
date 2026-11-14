@@ -28,13 +28,16 @@ Aicy 进程通过容量为 128 的队列异步写入，空闲工作线程在 30 
 
 ## HTTP 接入
 
-v0.4.0 直接观察目标 OkHttp `RealCall.getResponseWithInterceptorChain$okhttp()`，覆盖同步与异步调用的实际执行路径，不依赖旧版在客户端构建时挂入动态 DEX 拦截器。
+v0.4.1 撤销 v0.4.0 的全局 RealCall Hook，日志仅在模块创建的独立 OkHttp 客户端中挂载。不会在应用启动时对共享 OkHttp 执行方法注册全局 Hook。
 
-入口先核对请求的 HTTPS 域名、端口、路径，再核对当前配置的 Bearer 凭据；只有匹配的第三方模型请求进入日志。URL 与 Authorization 仅用于识别，不保存到日志，其他域名或路径不读取凭据。模块不读取请求体、响应头列表或响应流。返回原响应实例，并原样抛出原异常；日志失败不改变请求结果。挂载不可用时记录兼容诊断。
+使用一个模块自有的 1008 字节具体拦截器，通过 InMemoryDexClassLoader 加载，直接转发 InvocationHandler，避免 Java Proxy 包装原始检查异常。该类只引用目标接口描述符，没有厂商实现或接口 Stub。模块不读取请求体、请求头或响应流；返回原响应实例，并原样抛出原异常。挂载失败记录兼容诊断，模型请求继续使用原有传输。
+
+模型列表、成功筛选、真实 HTTP 状态与数据库并发初始化修复保留。无法读取状态码时仍记录为未知，不冒充成功。
 
 ```sh
+python3 tools/generate_log_bridge.py --sdk "$ANDROID_HOME"
 python3 tools/verify_target_apk.py 原始Aicy.apk
 python3 tools/verify_module_apk.py 模块.apk
 ```
 
-原 APK 静态核对包含 RealCall 的执行方法、原请求、取消状态、请求 URL 与 Authorization 读取入口和响应码字段。打包检查确认当前版本不再包含动态日志桥接 DEX，且未打包厂商实现或接口 Stub。设备上的框架和实际网络行为仍需真机验证；升级后必须重新启动 Aicy，旧进程无法自动换用新日志入口。
+原 APK 静态核对包含独立客户端构造、原生拦截器接口、请求链、取消状态和响应码字段。打包检查确认只包含一个模块自有桥接类，并核对校验和及无异常包装的转发结构。生成器 JVM 测试执行字节码，验证响应与检查异常实例保留。设备上的框架和实际网络行为仍需真机验证；升级后必须重新启动 Aicy。

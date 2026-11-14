@@ -32,9 +32,10 @@ METHODS = {
         ("invoke", "()Lcom/flyme/agentos/llm/impl/openai/g;"), ("invoke", "()Ljava/lang/Object;")},
     "Lio/ktor/client/f;": {("a", "(Lio/ktor/client/engine/okhttp/a;" + FUNCTION + ")Lio/ktor/client/b;")},
     "Lio/ktor/client/b;": {("close", "()V")},
-    "Lokhttp3/internal/connection/RealCall;": {("getResponseWithInterceptorChain$okhttp", "()Lbi/h0;"),
-        ("getOriginalRequest", "()Lbi/Y;"), ("isCanceled", "()Z")},
-    "Lbi/Y;": {("b", "(Ljava/lang/String;)Ljava/lang/String;")},
+    "Lbi/U;": {("a", "(Lbi/N;)V")},
+    "Lbi/N;": {("intercept", "(Lbi/M;)Lbi/h0;")},
+    "Lbi/M;": {("request", "()Lbi/Y;"), ("proceed", "(Lbi/Y;)Lbi/h0;"), ("call", "()Lbi/m;")},
+    "Lbi/m;": {("isCanceled", "()Z")},
     AGENT + "domain/tool/recall/y;": {("<init>", "(ZZZZZZZLjava/lang/String;IIIFIIFIFIIILjava/lang/String;FI"
         + AGENT + "domain/tool/recall/ExceptionStrategy;ZLjava/lang/String;I)V")},
     AGENT + "domain/tool/recall/p;": {("i", "(" + AGENT + "core/tool/J;Ljava/util/ArrayList;)Ljava/util/Set;")},
@@ -58,7 +59,6 @@ FIELDS = {
     "Lio/ktor/client/engine/okhttp/a;": {("a", "Lio/ktor/client/engine/okhttp/a;")},
     "Lbi/U;": {("i", "Z"), ("j", "Z")},
     "Lbi/h0;": {("d", "I")},
-    "Lbi/Y;": {("a", "Lbi/L;")},
     "Lkotlin/Unit;": {("INSTANCE", "Lkotlin/Unit;")},
     AGENT + "core/tool/J;": {("j", "I")},
 }

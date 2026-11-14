@@ -18,7 +18,7 @@ import org.robolectric.annotation.Config;
 import org.robolectric.shadows.ShadowContentResolver;
 import static org.junit.Assert.*;
 
-/** Real async reporter -> authenticated provider -> private database, with only the transport replaced. */
+/** Per-client interceptor -> real async reporter -> authenticated provider -> private database. */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 29, manifest = Config.NONE)
 public class NativeRequestReportingTest {
@@ -44,19 +44,20 @@ public class NativeRequestReportingTest {
         fail("Native request did not reach the call history"); return null;
     }
     @Test public void nativeHttp200ReachesTheDatabaseAsSuccessfulAicyHistory() throws Throwable {
-        NativeRequestLoggingTest.Call call = new NativeRequestLoggingTest.Call();
-        assertSame(call.incoming, NativeRequestLoggingTest.logger(reporter).observe(call, () -> call.incoming));
+        NativeCallLoggingTest.Chain call = new NativeCallLoggingTest.Chain();
+        assertSame(call.response, NativeCallLoggingTest.handler(reporter).invoke(this, null, new Object[]{call}));
         CallLogStore.Entry entry = await(rows -> rows.size() == 1 && rows.get(0).isSuccess()).get(0);
         assertEquals("aicy", entry.source); assertEquals("http", entry.stage); assertEquals(200, entry.httpStatus);
         assertEquals("response", entry.state); assertFalse(entry.isFailure()); assertTrue(entry.elapsedMs >= 0);
         assertEquals("example.test", entry.host); assertEquals("safe-model", entry.model);
     }
     @Test public void httpAndTransportFailuresRemainDistinctFromSuccess() throws Throwable {
-        NativeRequestLoggingTest.Call call = new NativeRequestLoggingTest.Call(); call.incoming.code = 401;
-        NativeRequestLogging logger = NativeRequestLoggingTest.logger(reporter);
-        logger.observe(call, () -> call.incoming);
+        NativeCallLoggingTest.Chain call = new NativeCallLoggingTest.Chain(); call.response.code = 401;
+        java.lang.reflect.InvocationHandler logger = NativeCallLoggingTest.handler(reporter);
+        logger.invoke(this, null, new Object[]{call});
         IOException original = new IOException("private-error-not-stored");
-        try { logger.observe(call, () -> { throw original; }); fail(); }
+        call.failure = original;
+        try { logger.invoke(this, null, new Object[]{call}); fail(); }
         catch (IOException result) { assertSame(original, result); }
         List<CallLogStore.Entry> entries = await(rows -> rows.size() == 2 && rows.stream().allMatch(CallLogStore.Entry::isFailure));
         assertTrue(entries.stream().anyMatch(e -> e.httpStatus == 401));
@@ -71,9 +72,9 @@ public class NativeRequestReportingTest {
         assertTrue(entries.stream().anyMatch(e -> e.httpStatus == 200 && "模型列表".equals(e.stageLabel()) && "获取成功".equals(e.stateLabel())));
     }
     @Test public void missingStatusIsRecordedAsUnknownInsteadOfStayingPendingOrClaimingSuccess() throws Throwable {
-        NativeRequestLoggingTest.Call call = new NativeRequestLoggingTest.Call();
-        NativeRequestLoggingTest.logger(reporter, "test-key", NativeRequestLoggingTest.Response.class.getDeclaredField("hiddenCode"))
-                .observe(call, () -> call.incoming);
+        NativeCallLoggingTest.Chain call = new NativeCallLoggingTest.Chain();
+        NativeCallLoggingTest.handler(reporter, NativeCallLoggingTest.Response.class.getDeclaredField("hiddenCode"))
+                .invoke(this, null, new Object[]{call});
         CallLogStore.Entry entry = await(rows -> rows.size() == 1 && "response".equals(rows.get(0).state)).get(0);
         assertEquals(0, entry.httpStatus); assertFalse(entry.isSuccess()); assertFalse(entry.isFailure());
         assertEquals("status_unavailable", entry.error); assertEquals("已收到响应（状态未知）", entry.stateLabel());

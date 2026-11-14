@@ -34,6 +34,6 @@ The ordinary OpenAI client does not own its supplied HTTP client. The module mus
 
 ## Evidence and verification limits
 
-v0.4.0 observes the native RealCall execution path through API102 instead of installing a dynamic interceptor. Only requests matching the configured HTTPS endpoint and Bearer credential are logged. The observer returns the same response and rethrows the original exception; it does not consume bodies or streams. Metadata failure still completes a row with an unknown status rather than inventing HTTP success. If logging is unavailable the original transport continues. See [call logs](call-logs.md).
+v0.4.1 removes the global RealCall hook introduced in v0.4.0. Logging attaches only to the module's isolated client, using a small module-owned concrete interceptor that preserves native checked exceptions. No shared OkHttp execution method is hooked during application startup. Metadata failures still finish the row as unknown, and the database initialization fix remains. See [call logs](call-logs.md).
 
 The symbols and behavior were inspected from `classes3.dex` and `classes6.dex` using targeted JADX decompilation and DEX disassembly. Vendor source code is not included in this repository. These checks establish the static mapping; actual target-device loading and network behavior still require device validation.

@@ -98,14 +98,6 @@ public final class AicyHooks {
             for (String name : new String[]{"a", "b", "c", "d", "e", "f", "g", "h"}) field(config, name);
             NativeHttpClients.verify(loader);
 
-            try {
-                NativeRequestLogging requests = NativeRequestLogging.create(loader, endpoint, key, callLogs);
-                module.hook(requests.execution).setExceptionMode(ExceptionMode.PASSTHROUGH).setId("aicybridge.native.request-log").intercept(chain -> {
-                    if (!active) return chain.proceed();
-                    return requests.observe(chain.getThisObject(), () -> chain.proceed());
-                });
-            } catch (Throwable unavailable) { callLogs.unavailable(); }
-
             module.hook(method(config, "toString")).setExceptionMode(ExceptionMode.PASSTHROUGH).setId("aicybridge.redact.config").intercept(chain -> {
                 if (active && ownedConfig(chain.getThisObject())) return "OpenAiCompatibleConfig(<private API settings>)";
                 return chain.proceed();
@@ -126,7 +118,7 @@ public final class AicyHooks {
                 try {
                     Object ownConfig = configCtor.newInstance(key, model, endpoint, get(old, "d"), "openai-compatible",
                             get(old, "g"), get(old, "h"));
-                    pureClient = NativeHttpClients.create(loader);
+                    pureClient = NativeHttpClients.create(loader, callLogs);
                     Object ownStream = streamCtor.newInstance(get(old, "g"), streamFactory.get(oldStream));
                     Object result = chain.proceed(new Object[]{ownConfig, pureClient, ownStream, null, chain.getArg(4)});
                     Object receiver = chain.getThisObject();
@@ -192,11 +184,11 @@ public final class AicyHooks {
                 }
                 // Startup media tools index their limits by the native profile's model name.
                 // Return that exact snapshot for metadata readers; replace it only inside the
-                // synchronous delegate factory that turns a profile into an actual LLM client.
+                // synchronous delegate factory. Even there, retain the native model identity:
+                // actual API model replacement happens only in the client config and request body.
                 return delegateScope.profile(result, () -> {
                     Object original = get(result, "a");
-                    Object ownProfile = profileCtor.newInstance(get(original, "a"), get(original, "b"), "openai-compatible",
-                            endpoint, model, key, get(original, "g"), get(original, "h"), get(original, "i"));
+                    Object ownProfile = profileCtor.newInstance(BindingProfileArguments.forEndpoint(original, endpoint, key));
                     Object valid = validationCtor.newInstance(true, get(original, "a"), Collections.emptySet(), null);
                     return snapshotCtor.newInstance(ownProfile, get(result, "b"), get(result, "c"), get(result, "d"), valid, get(result, "f"));
                 });

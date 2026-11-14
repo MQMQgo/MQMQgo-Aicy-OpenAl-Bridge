@@ -5,3 +5,4 @@
 d46363169af83a81d411c66e24c4926b9eb594eff8662449e90fe7a3ca4a62d8  aicy-openai-bridge-v0.3.1-api102.apk
 dc4f7cf62900f7bd1b9e912400402e7a7c2c5cc39e71beb4d3d5dc5d50a9afd0  aicy-openai-bridge-v0.3.2-api102.apk
 dfb40133e6c8a96e7a5ce61a2dd6e539be0ca76e5c4c776466f90d5975afa923  aicy-openai-bridge-v0.4.0-api102.apk
+6ee1e25ff959a566e1c0682e838a4578c91159bd7ed9c87f4a4313cb04b8b1c1  aicy-openai-bridge-v0.4.1-api102.apk
