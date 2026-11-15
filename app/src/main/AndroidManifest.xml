@@ -23,7 +23,7 @@
         </activity>
         <provider
             android:name=".SettingsProvider"
-            android:authorities="io.github.aicybridge.settings"
+            android:authorities="${applicationId}.settings"
             android:exported="true"
             android:grantUriPermissions="false" />
     </application>

@@ -4,6 +4,13 @@ plugins {
     id 'org.jetbrains.kotlin.plugin.compose' version '2.4.21'
 }
 
+// Keep the original install identity for existing users. The LSPosed repository
+// requires a namespace owned by the submitting GitHub account.
+def moduleApplicationId = providers.gradleProperty('moduleApplicationId').getOrElse('io.github.aicybridge')
+if (!(moduleApplicationId in ['io.github.aicybridge', 'io.github.mqmqgo.aicybridge'])) {
+    throw new GradleException('Unsupported moduleApplicationId')
+}
+
 android {
     namespace 'io.github.aicybridge'
     // The official libxposed API 102 AAR declares minCompileSdk=37.
@@ -12,11 +19,11 @@ android {
     buildToolsVersion '37.0.0'
 
     defaultConfig {
-        applicationId 'io.github.aicybridge'
+        applicationId moduleApplicationId
         minSdk 26
         targetSdk 35
-        versionCode 8
-        versionName '0.4.1'
+        versionCode 9
+        versionName '0.4.2'
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
         buildConfigField 'String', 'TARGET_PACKAGE', '"com.meizu.voiceassistant"'
         buildConfigField 'String', 'TARGET_CERT_SHA256', '"94153299d67ab1b37a39ed5fe17e893df87084fb129077be51863bcbd9132336"'

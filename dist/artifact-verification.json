@@ -1,15 +1,15 @@
 {
-  "apk": "aicy-openai-bridge-v0.4.1-api102.apk",
-  "version_name": "0.4.1",
-  "version_code": 8,
+  "apk": "aicy-openai-bridge-v0.4.2-api102.apk",
+  "version_name": "0.4.2",
+  "version_code": 9,
   "bytes": 7517943,
-  "sha256": "6ee1e25ff959a566e1c0682e838a4578c91159bd7ed9c87f4a4313cb04b8b1c1",
+  "sha256": "e9568984e12887ff968c0e3314702bfb52ac9515819caa83372937ad8449364e",
   "signing_certificate_sha256": "85e5d46dea60f76910f4b62c94333355f4aaccf84904d7659bf67a62284dc7cf",
   "libxposed_min_api": 102,
   "libxposed_target_api": 102,
   "miuix_version": "0.9.4",
   "lint_errors": 0,
-  "lint_warnings": 4,
+  "lint_warnings": 2,
   "local_tests": {
     "io.github.aicybridge.CallLogPrivacyTest": {
       "tests": 4,
@@ -116,5 +116,50 @@
   "uses_dynamic_log_bridge": true,
   "native_log_backend": "owned_native_interceptor",
   "generated_bridge_jvm_tests": 1,
-  "generated_bridge_reproducible": true
+  "generated_bridge_reproducible": true,
+  "distributions": [
+    {
+      "application_id": "io.github.aicybridge",
+      "apk": "aicy-openai-bridge-v0.4.2-api102.apk",
+      "bytes": 7517943,
+      "sha256": "e9568984e12887ff968c0e3314702bfb52ac9515819caa83372937ad8449364e"
+    },
+    {
+      "application_id": "io.github.mqmqgo.aicybridge",
+      "apk": "aicy-openai-bridge-v0.4.2-lsposed-api102.apk",
+      "bytes": 7517943,
+      "sha256": "f12be9f014d89bc63aa9cdc3750093ebe42f92aec5204b1cef8c471cc704895d"
+    }
+  ],
+  "identity_builds": {
+    "legacy": {
+      "identity": "io.github.aicybridge",
+      "tests": {
+        "tests": 69,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "lint": {
+        "Warning": 2
+      }
+    },
+    "lsposed": {
+      "identity": "io.github.mqmqgo.aicybridge",
+      "tests": {
+        "tests": 69,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "lint": {
+        "Warning": 2
+      }
+    }
+  },
+  "manifest_and_runtime_authorities_verified": true,
+  "unchanged_checks_from_v041": [
+    "target ABI 25 classes",
+    "logging bridge generator JVM and reproducibility"
+  ]
 }

@@ -3,7 +3,12 @@
 import argparse
 import base64
 import hashlib
+import os
+from pathlib import Path
+import re
+import shutil
 import struct
+import subprocess
 import zipfile
 import zlib
 from inspect_dex import Dex
@@ -42,7 +47,27 @@ def verify_logging_bridge(data):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("apk")
+    parser.add_argument("--application-id", help="Also verify manifest install identity and Provider authority")
+    parser.add_argument("--aapt2", help="aapt2 executable; otherwise discover it from ANDROID_HOME")
     args = parser.parse_args()
+    if args.application_id:
+        aapt = args.aapt2 or shutil.which("aapt2")
+        if not aapt:
+            sdk = os.environ.get("ANDROID_HOME") or os.environ.get("ANDROID_SDK_ROOT")
+            if sdk:
+                candidate = Path(sdk) / "build-tools" / "37.0.0" / "aapt2"
+                if candidate.is_file():
+                    aapt = str(candidate)
+        if not aapt:
+            parser.error("--application-id requires aapt2; set --aapt2 or ANDROID_HOME")
+        manifest = subprocess.check_output([aapt, "dump", "xmltree", args.apk,
+                                            "--file", "AndroidManifest.xml"], text=True)
+        package = re.search(r'\bA: package="([^"]+)"', manifest)
+        authorities = re.findall(r'\bA: (?:android|http://schemas.android.com/apk/res/android):authorities\([^)]*\)="([^"]+)"', manifest)
+        assert package and package.group(1) == args.application_id, "Unexpected manifest application ID"
+        assert authorities.count(args.application_id + ".settings") == 1, "Missing or duplicate settings Provider"
+        assert all(x.startswith(args.application_id + ".") for x in authorities), "Provider must use this install identity"
+        print("Verified application ID and Provider authority:", args.application_id)
     with zipfile.ZipFile(args.apk) as archive:
         base = "META-INF/xposed/"
         assert archive.read(base + "java_init.list").decode().strip() == "io.github.aicybridge.hook.BridgeModule"
@@ -55,11 +80,15 @@ def main():
         assert properties["autoHotReload"] == "false"
         classes = set()
         embedded = set()
+        settings_uris = set()
         for name in archive.namelist():
             if name.startswith("classes") and name.endswith(".dex") and "/" not in name:
                 dex = Dex(archive.read(name))
                 classes.update(c["class"] for c in dex.classes(["L"]))
                 embedded.update(x for x in dex.strings if x.startswith('ZGV4CjA'))
+                settings_uris.update(x for x in dex.strings if x.startswith('content://') and x.endswith('.settings'))
+        if args.application_id:
+            assert settings_uris == {'content://' + args.application_id + '.settings'}, 'Runtime config/log clients must use the manifest Provider'
         assert "Lio/github/aicybridge/hook/BridgeModule;" in classes
         assert "Lio/github/aicybridge/hook/AicyHooks;" in classes
         assert not any(c.startswith("Lio/github/libxposed/") for c in classes), "Framework API must be compileOnly"

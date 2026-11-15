@@ -1,20 +1,20 @@
 # 安装包下载
 
-[下载 Aicy OpenAI Bridge v0.4.1 / API102](aicy-openai-bridge-v0.4.1-api102.apk?raw=true)
+**本项目是 AI 辅助氛围编程（Vibe Coding）的产物。** 当前 v0.4.2 是分发身份调整版，保留 v0.4.1 的兼容修复候选状态，尚未确认真实 Flyme / API102 上的完整运行与闪退恢复。
 
-该 APK 为签名发布包，适配 Aicy 13.1.1（13001001）。要求支持现代 libxposed API102 的框架；安装或保存接口配置后，强行停止并重新打开 Aicy。v0.4.1 是启动兼容修复候选：撤销启动阶段的全局 RealCall Hook，日志仅接入自建客户端；内部模型标识保留原生，实际 API 模型仍按配置。模型列表、玻璃底栏与已有数据保留。
+| 安装包 | 包名 | 用途 |
+| --- | --- | --- |
+| [原包名覆盖更新包](aicy-openai-bridge-v0.4.2-api102.apk?raw=true) | `io.github.aicybridge` | 已有用户覆盖安装，保留配置及日志 |
+| [LSPosed 官方仓库申请包](aicy-openai-bridge-v0.4.2-lsposed-api102.apk?raw=true) | `io.github.mqmqgo.aicybridge` | 符合维护者命名空间归属规则的新安装身份 |
 
-- APK 字节数：7,517,943
-- APK SHA-256：`6ee1e25ff959a566e1c0682e838a4578c91159bd7ed9c87f4a4313cb04b8b1c1`
-- 发布证书 SHA-256：`85e5d46dea60f76910f4b62c94333355f4aaccf84904d7659bf67a62284dc7cf`
-- 源码和发布包对应标签：`v0.4.1`
+**两个包名的数据和 Keystore 互不通用。新包首次安装需重新填写渠道；请仅启用一个版本。** 两个包都使用原发布证书签名。原包名更新不要先卸载或清除数据。
 
-与本仓库旧版发布包使用同一签名，可直接覆盖安装，保留应用数据；不要先卸载或清除模块数据。已经无法启动 Aicy 时，可以先关闭模块，安装后重新启用，再强行停止并重新打开 Aicy。Key 默认不回显，编辑时留空保留原密钥。
+版本 `0.4.2`（9），minSdk26 / targetSdk35，要求现代 libxposed API102，适配 Aicy 13.1.1（13001001）。保存配置后强行停止并重开 Aicy。源代码对应标签 `v0.4.2`。
 
-玻璃折射用于 Android 13+，Android 12 使用模糊，更早版本使用兼容材质。点击底部胶囊的日志图标进入日志页，点击主页图标返回。切换页面保留未保存的 API 草稿、滚动位置与日志筛选。默认保存最近 200 条请求概况，不记录密钥、正文或工具参数；Aicy 流式请求的耗时统计到响应头到达。日志开关立即生效。
+- `aicy-openai-bridge-v0.4.2-api102.apk`：7,517,943 字节；SHA-256：`e9568984e12887ff968c0e3314702bfb52ac9515819caa83372937ad8449364e`。
+- `aicy-openai-bridge-v0.4.2-lsposed-api102.apk`：7,517,943 字节；SHA-256：`f12be9f014d89bc63aa9cdc3750093ebe42f92aec5204b1cef8c471cc704895d`。
+- 共同发布证书 SHA-256：`85e5d46dea60f76910f4b62c94333355f4aaccf84904d7659bf67a62284dc7cf`。
 
-69 项 Gradle 本地测试及 1 项生成桥接类 JVM 验证通过，包含客户端创建中途的原生媒体限额读取、模型列表和 HTTP200 完整上报链路。当前使用自建客户端内的具体拦截器，不对共享 RealCall 注册全局 Hook。构建、lint、签名、API102 打包和对齐检查通过。真实 Flyme、ART 与 API102 框架运行仍待验证。尚无本次新异常栈，不能确认手机上的确切崩溃原因。完整说明见根目录 README 和 VALIDATION.md。
+两种身份均完成应用测试，含完整 HTTP200 日志上报链路；协议层测试沿用同一 core。测试汇总为 69 项，无失败、错误或跳过。调试/发布构建及 lint 通过（0 错误、2 警告），签名、对齐、API102 打包与每个包的 Manifest / 运行时 Provider 地址核对通过。
 
-[历史版本 v0.1.0](aicy-openai-bridge-v0.1.0-api102.apk?raw=true) 的校验值保留在 SHA256SUMS.txt。
-
-GitHub Release 附件上传接口在当前连接下返回 HTTP 401，因此将已验证的签名 APK 保存在仓库中；这里不包含发布签名私钥。
+安装包先发布在源码仓库，官方仓库建立、填充说明、上传 Release APK 附件和网站索引仍需分别完成。进度见 [分发说明](../docs/lsposed-distribution.md)。历史安装包及校验值继续保留。

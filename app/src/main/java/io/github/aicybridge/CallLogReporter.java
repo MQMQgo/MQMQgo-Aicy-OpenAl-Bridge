@@ -11,7 +11,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 /** Best-effort, bounded asynchronous reporting. Logging must never affect Aicy requests. */
 public final class CallLogReporter implements io.github.aicybridge.hook.HttpCallObserver {
-    private static final Uri URI = Uri.parse("content://io.github.aicybridge.settings");
+    private static final Uri URI = Uri.parse("content://" + BuildConfig.APPLICATION_ID + ".settings");
     private static final ThreadPoolExecutor WORKER = worker();
     private final Context context;
     private final String host, model;

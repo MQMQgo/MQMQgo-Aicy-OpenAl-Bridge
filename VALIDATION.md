@@ -1,3 +1,26 @@
+# v0.4.2 验证记录
+
+日期：2026-11-15。为 LSPosed 官方模块仓库准备符合维护者账号的分发身份，保留原包名覆盖更新；项目与发布说明增加“AI 辅助氛围编程（Vibe Coding）的产物”声明。
+
+## 验证结果
+
+- 原包名 `io.github.aicybridge` 与官方申请包 `io.github.mqmqgo.aicybridge` 均完成调试/发布构建、应用测试与 lint。协议层沿用同一 core，测试汇总为 69 项，无失败、错误或跳过；两个身份各重新执行应用侧测试，均包含完整 HTTP200 异步日志上报链路。
+- 两次 lint 均为 0 Error/Fatal、2 Warning。actionlint 与 Python 校验脚本语法检查通过。
+- 对两个最终签名包分别验证 Manifest applicationId、所有 Provider authority、DEX 中的配置/日志 URI 一致且没有混入另一身份的 URI；API102 元数据、作用域、入口、compileOnly、嵌入自有桥接类检查通过，14,734 个主 DEX 类。
+- 两个包均通过 v2/v3 签名验证及 zipalign `-c -P 16 4`，同一长期证书。官方包版本 0.4.2（9），minSdk26 / targetSdk35 / compileSdk37。
+- 反射映射和桥接字节码没有改动，25 类原始 ABI、桥接生成器 JVM 测试及可重现性沿用 v0.4.1 核对结果。
+
+## 安装包
+
+- `aicy-openai-bridge-v0.4.2-api102.apk`：7,517,943 字节，SHA-256 `e9568984e12887ff968c0e3314702bfb52ac9515819caa83372937ad8449364e`。
+- `aicy-openai-bridge-v0.4.2-lsposed-api102.apk`：7,517,943 字节，SHA-256 `f12be9f014d89bc63aa9cdc3750093ebe42f92aec5204b1cef8c471cc704895d`。
+
+新包名不会迁移旧包名的配置、Keystore 或日志，也不会删除旧包数据。旧包覆盖更新保持同一 UID 和签名，可继续读取已保存数据。仅在框架中启用一个版本。
+
+没有在真实 Flyme / API102 环境运行；没有获得本次启动闪退的新堆栈，不能以打包身份调整或本地检查证明闪退已恢复。官方收录要求的建仓、邀请、Description 和带 APK 附件的 Release 与本地验证分别记录在分发说明中。
+
+---
+
 # v0.4.1 验证记录
 
 日期：2026-11-14。针对用户反馈 Aicy 再次启动闪退，制作同签名兼容修复候选。当前尚未收到本次新的异常栈，不能断言与旧媒体限额异常同因，也不把本地测试通过等同于真机已恢复。

@@ -28,10 +28,20 @@ jobs:
           python3 tools/generate_log_bridge.py --output "$RUNNER_TEMP/NativeLogBridge.java"
           cmp app/src/main/java/io/github/aicybridge/hook/NativeLogBridge.java "$RUNNER_TEMP/NativeLogBridge.java"
       - name: Verify module packaging
-        run: python3 tools/verify_module_apk.py app/build/outputs/apk/debug/app-debug.apk
+        run: python3 tools/verify_module_apk.py app/build/outputs/apk/debug/app-debug.apk --application-id io.github.aicybridge
       - uses: actions/upload-artifact@v4
         with:
           name: aicy-openai-bridge-debug
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
+      - name: Build and test LSPosed distribution identity
+        run: ./gradlew --no-daemon -PmoduleApplicationId=io.github.mqmqgo.aicybridge :app:testDebugUnitTest :app:assembleDebug
+      - name: Verify LSPosed distribution packaging
+        run: python3 tools/verify_module_apk.py app/build/outputs/apk/debug/app-debug.apk --application-id io.github.mqmqgo.aicybridge
+      - uses: actions/upload-artifact@v4
+        with:
+          name: aicy-openai-bridge-lsposed-debug
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14

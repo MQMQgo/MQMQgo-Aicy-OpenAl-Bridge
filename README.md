@@ -1,6 +1,14 @@
-# Aicy OpenAI Bridge
+# Aicy OpenAl Bridge
 
 为 **Aicy 助手 13.1.1** 接入自己的 OpenAI 兼容 Chat Completions API。使用现代 **libxposed API 102**，包含设置界面和真实 Hook，支持构建为可直接安装的 APK。
+
+> **本项目是 AI 辅助氛围编程（Vibe Coding）的产物。** 代码、界面、测试和文档主要由 AI 根据维护者需求辅助生成、修改，维护者负责使用反馈与发布决策。已执行的本地检查见 [VALIDATION.md](VALIDATION.md)；尚未完成真实 Flyme / API102 环境的完整运行验证，v0.4.1 的启动闪退修复仍待真机确认。
+
+## v0.4.2 分发与官方仓库申请
+
+为符合 LSPosed 模块仓库的包名归属要求，提供 `io.github.mqmqgo.aicybridge` 官方分发包；原包名 `io.github.aicybridge` 的安装包继续提供，用于覆盖更新。两者使用同一发布证书，但包名不同，设置和日志不互通。**官方分发包首次安装需重新填写渠道；请只在 LSPosed 中启用其中一个版本。** 原应用的数据不会被删除。
+
+这次仅调整分发身份和 Provider 地址，保留 v0.4.1 的 Hook 与功能，不能据此判断闪退已经恢复。申请流程和当前进度见 [LSPosed 分发说明](docs/lsposed-distribution.md)。
 
 ## 安装与配置
 

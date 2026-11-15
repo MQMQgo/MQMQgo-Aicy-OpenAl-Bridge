@@ -12,13 +12,14 @@ import java.lang.reflect.Method;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import io.github.libxposed.api.XposedModule;
+import io.github.aicybridge.BuildConfig;
 
 /** Modern libxposed API 102 entry, restricted to the verified Aicy release. */
 public final class BridgeModule extends XposedModule {
     public static final String TARGET_PACKAGE = "com.meizu.voiceassistant";
     public static final long TARGET_VERSION_CODE = 13001001L;
     public static final String TARGET_VERSION_NAME = "13.1.1";
-    private static final Uri PROVIDER_URI = Uri.parse("content://io.github.aicybridge.settings");
+    private static final Uri PROVIDER_URI = Uri.parse("content://" + BuildConfig.APPLICATION_ID + ".settings");
     private static final String TAG = "AicyBridge";
 
     private final AtomicBoolean attachInstalled = new AtomicBoolean();

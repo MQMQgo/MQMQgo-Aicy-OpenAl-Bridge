@@ -1,6 +1,6 @@
 # Android 设置应用与配置桥
 
-模块应用 ID 为 `io.github.aicybridge`，设置界面为 Kotlin/Compose `SettingsActivity`，使用 Miuix 0.9.4，跟随系统浅色与深色模式。`BridgeApp` 使用参考 Miuix 玻璃示例的 `GlassCapsuleNavigation` 在主页和日志页间切换，两页保留独立滚动状态；API 草稿由现有 ViewModel 保留，密钥不写入保存状态。底栏叠放在页面上方，滚动容器末尾预留空间，移除整块底栏占位区域。材质和平台回退见 [玻璃底栏](../docs/glass-navigation.md)。
+原安装包应用 ID 为 `io.github.aicybridge`；通过 `-PmoduleApplicationId=io.github.mqmqgo.aicybridge` 构建符合 LSPosed 仓库归属要求的分发包，源码 namespace 保持不变。设置界面为 Kotlin/Compose `SettingsActivity`，使用 Miuix 0.9.4，跟随系统浅色与深色模式。`BridgeApp` 使用参考 Miuix 玻璃示例的 `GlassCapsuleNavigation` 在主页和日志页间切换，两页保留独立滚动状态；API 草稿由现有 ViewModel 保留，密钥不写入保存状态。底栏叠放在页面上方，滚动容器末尾预留空间，移除整块底栏占位区域。材质和平台回退见 [玻璃底栏](../docs/glass-navigation.md)。
 
 ## 使用
 
@@ -25,7 +25,7 @@
 
 ## Provider 接口
 
-Authority：`io.github.aicybridge.settings`，URI：`content://io.github.aicybridge.settings`。
+Authority：`${applicationId}.settings`，URI：`content://${applicationId}.settings`。Manifest、配置读取、状态上报和日志上报使用当前构建的同一应用 ID，两个安装包不会共用 Provider 或应用私有数据。
 
 只允许模块自身 UID，或同时满足以下条件的目标调用：
 

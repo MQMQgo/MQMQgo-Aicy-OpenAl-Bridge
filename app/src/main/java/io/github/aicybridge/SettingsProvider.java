@@ -16,7 +16,7 @@ import java.util.Locale;
 
 /** Read-only bridge for the module and the verified Aicy package. */
 public final class SettingsProvider extends ContentProvider {
-    public static final String AUTHORITY = "io.github.aicybridge.settings";
+    public static final String AUTHORITY = BuildConfig.APPLICATION_ID + ".settings";
     public static final Uri URI = Uri.parse("content://" + AUTHORITY);
     private ConfigStore store;
     private CallLogStore callLogs;
