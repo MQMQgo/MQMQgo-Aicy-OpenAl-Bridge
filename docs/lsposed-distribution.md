@@ -32,4 +32,19 @@
 
 两个命令共用构建输出目录，执行下一次构建前需复制对应产物，并分别完成签名和身份检查。入口类和源码 namespace 保持 `io.github.aicybridge`；Provider 的 authority 随安装包 applicationId 改变。
 
-源码仓库希望命名为 `Aicy-OpenAl-Bridge`；GitHub 仓库名用连字符代替空格。2026-11-15 当前连接尝试改名返回 HTTP 403（`Resource not accessible by integration`），因此尚未改名。该权限问题不等于用户未授权。
+源码仓库希望命名为 `Aicy-OpenAl-Bridge`；GitHub 仓库名用连字符代替空格。2026-11-15 当前连接尝试改名返回 HTTP 403（`Resource not accessible by integration`），因此尚未改名。当前连接未获 GitHub 仓库 Administration 写权限。
+
+
+## 当前进度与需在 GitHub 页面完成的操作（2026-11-15）
+
+- 两种身份的签名安装包、分发 README / SUMMARY / 申请正文已上传源码仓库，v0.4.2 候选 Release 已发布。
+- 仓库改名：GitHub 接口返回 HTTP403，**实际名称仍是 `MQMQgo-Aicy-OpenAl-Bridge`**。
+- 官方收录申请：创建 Issue 返回 HTTP403（`Resource not accessible by integration`），**没有创建申请，也没有获得官方分发仓库或上架**。
+- Release 附件：上传返回 HTTP401，当前源码 Release 的附件列表为空；签名 APK 在源码仓库 `dist/` 中提供下载，不能将它算作已完成官方 Release 附件要求。
+
+这些是 GitHub 连接权限限制，准备好的文件可在已登录的 GitHub 页面继续发布。
+
+1. 打开[源码仓库设置](https://github.com/MQMQgo/MQMQgo-Aicy-OpenAl-Bridge/settings)，在 Repository name 中改为 `Aicy-OpenAl-Bridge`。GitHub 会保留旧 URL 重定向。
+2. 点击[预填的官方收录申请](https://github.com/Xposed-Modules-Repo/submission/issues/new?title=%5Bsubmission%5D+io.github.mqmqgo.aicybridge&body=Module%3A+Aicy+OpenAl+Bridge%0AApplication+ID%3A+io.github.mqmqgo.aicybridge%0AMaintainer%3A+MQMQgo%0ASource%3A+https%3A%2F%2Fgithub.com%2FMQMQgo%2FMQMQgo-Aicy-OpenAl-Bridge%0A%0ADevelopment+disclosure%3A+This+project+is+a+product+of+AI-assisted+vibe+coding.+%E6%9C%AC%E9%A1%B9%E7%9B%AE%E6%98%AF+AI+%E8%BE%85%E5%8A%A9%E6%B0%9B%E5%9B%B4%E7%BC%96%E7%A8%8B%E7%9A%84%E4%BA%A7%E7%89%A9%E3%80%82%0A%0AStatus%3A+v0.4.2+%2F+versionCode+9%2C+compatibility+candidate+%28prerelease%29%3B+real-device+Flyme%2FAPI102+validation+and+confirmation+of+the+latest+startup-crash+fix+are+still+pending.%0A%0AFull+submission+and+signed+APK+link%3A+https%3A%2F%2Fgithub.com%2FMQMQgo%2FMQMQgo-Aicy-OpenAl-Bridge%2Fblob%2Fmain%2Fdistribution%2Flsposed%2FSUBMISSION.md%0A)，核对包名、来源声明和链接后提交。完整正文也在 [`SUBMISSION.md`](../distribution/lsposed/SUBMISSION.md)。
+3. 机器人建仓后，在对应仓库 `/invitations` 页面接受维护邀请。填写 Description 为 `Aicy OpenAl Bridge`、支持链接为源码仓库；把 [`README.md`](../distribution/lsposed/README.md) 和 [`SUMMARY`](../distribution/lsposed/SUMMARY) 上传到分发仓库根目录。
+4. 在分发仓库创建 `9-0.4.2` 候选 Release，把 [`aicy-openai-bridge-v0.4.2-lsposed-api102.apk`](../dist/aicy-openai-bridge-v0.4.2-lsposed-api102.apk?raw=true) 作为 APK 附件上传，并把 AI 氛围编程声明及真机验证范围保留在说明中。完成后再等待官方索引。

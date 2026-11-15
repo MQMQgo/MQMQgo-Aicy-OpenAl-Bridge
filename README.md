@@ -8,7 +8,7 @@
 
 为符合 LSPosed 模块仓库的包名归属要求，提供 `io.github.mqmqgo.aicybridge` 官方分发包；原包名 `io.github.aicybridge` 的安装包继续提供，用于覆盖更新。两者使用同一发布证书，但包名不同，设置和日志不互通。**官方分发包首次安装需重新填写渠道；请只在 LSPosed 中启用其中一个版本。** 原应用的数据不会被删除。
 
-这次仅调整分发身份和 Provider 地址，保留 v0.4.1 的 Hook 与功能，不能据此判断闪退已经恢复。申请流程和当前进度见 [LSPosed 分发说明](docs/lsposed-distribution.md)。
+这次仅调整分发身份和 Provider 地址，保留 v0.4.1 的 Hook 与功能，不能据此判断闪退已经恢复。申请流程和当前进度见 [LSPosed 分发说明](docs/lsposed-distribution.md)。 当前连接改名和提交申请均返回 GitHub HTTP403，尚未完成仓库改名或官方收录；分发说明中已提供网页操作入口。
 
 ## 安装与配置
 
